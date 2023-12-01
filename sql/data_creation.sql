@@ -1,5 +1,4 @@
-
---Customer
+-- Customer
 INSERT INTO Customer (Name, BillingAddress) VALUES
 ('John Doe', '123 Maple St, Springfield'),
 ('Jane Smith', '456 Oak Ave, Centerville'),
@@ -13,7 +12,9 @@ INSERT INTO ServiceLocation (CustomerID, Building, UnitNumber, TakeOverDate, Squ
 (1, '123 Maple St Building', 5, '2021-06-01', 1200, 2, 4, '12345'),
 (2, '456 Oak Ave Complex', 12, '2020-10-15', 950, 1, 2, '54321'),
 (3, 'Pine Rd Villas', 7, '2022-01-20', 1500, 3, 5, '67890'),
-(1, 'Maple St Annex', 3, '2021-11-10', 800, 1, 3, '12345');
+(1, 'Maple St Annex', 3, '2021-11-10', 800, 1, 3, '12345'),
+(4, 'Birch St Building', 8, '2022-03-15', 1140, 1, 2, '12345'),
+(4, 'Oak Rd Complex', 9, '2022-04-10', 1180, 1, 1, '54321');
 
 
 -- Device
@@ -28,13 +29,14 @@ INSERT INTO Device (ServiceLocationID, Type, ModelNumber) VALUES
 (2, 'AC System', 'LG AC310'),
 (2, 'Light', 'Philips Bulb60'),
 (3, 'Refrigerator', 'Samsung Fridge500'),
-(4, 'Washer', 'Bosch Wash700');
+(4, 'Washer', 'Bosch Wash700'),
+(5, 'Heater', 'HeatMax 200'),
+(6, 'AC System', 'CoolPro AC400');
 
 
 
 -- Event
--- 添加一些事件数据，包括开关机、能耗等
-INSERT INTO Event (DeviceID, Timestamp, EventLabel, Value) VALUES
+INSERT INTO Event (DeviceId, Timestamp, EventLabel, Value) VALUES
 (1, '2023-08-01 08:00:00', 'Switched On', NULL),
 (1, '2023-08-01 08:15:00', 'Energy Use', 0.05),
 (2, '2023-08-01 09:00:00', 'Door Opened', NULL),
@@ -52,13 +54,36 @@ INSERT INTO Event (DeviceID, Timestamp, EventLabel, Value) VALUES
 (8, '2023-08-15 21:00:00', 'Switched Off', NULL),
 (9, '2023-08-20 10:00:00', 'Temp Lowered', 68.00),
 (10, '2023-08-22 07:00:00', 'Switched On', NULL),
-(10, '2023-08-22 07:15:00', 'Energy Use', 0.10);
-
-
-
+(10, '2023-08-22 07:15:00', 'Energy Use', 0.10),
+(1, '2022-08-05 10:00:00', 'Energy Use', 0.15),
+(1, '2022-08-10 10:00:00', 'Energy Use', 0.20),
+(2, '2022-08-15 10:00:00', 'Energy Use', 0.10),
+(2, '2022-08-20 10:00:00', 'Energy Use', 0.12),
+(1, '2022-08-25 10:00:00', 'Energy Use', 0.18),
+(1, '2022-08-03 09:00:00', 'Energy Use', 0.16),
+(1, '2022-08-07 10:00:00', 'Energy Use', 0.20),
+(2, '2022-08-10 14:00:00', 'Energy Use', 0.11),
+(2, '2022-08-22 08:30:00', 'Energy Use', 0.13),
+(3, '2022-08-15 11:00:00', 'Energy Use', 0.15),
+(3, '2022-08-28 09:45:00', 'Energy Use', 0.19),
+(12, '2022-08-03 11:00:00', 'Energy Use', 0.22),
+(12, '2022-08-15 13:30:00', 'Energy Use', 0.25),
+(13, '2022-08-12 14:00:00', 'Energy Use', 0.19),
+(13, '2022-08-22 15:45:00', 'Energy Use', 0.21),
+(1, '2022-08-05 10:00:00', 'Energy Use', 0.15),
+(1, '2022-08-12 10:00:00', 'Energy Use', 0.17),
+(2, '2022-08-09 10:00:00', 'Energy Use', 0.12),
+(2, '2022-08-27 10:00:00', 'Energy Use', 0.14),
+(3, '2022-08-15 10:00:00', 'Energy Use', 0.18),
+(3, '2022-08-23 10:00:00', 'Energy Use', 0.20),
+(1, '2022-09-03 10:00:00', 'Energy Use', 0.25),
+(1, '2022-09-20 10:00:00', 'Energy Use', 0.30),
+(2, '2022-09-10 10:00:00', 'Energy Use', 0.16),
+(2, '2022-09-26 10:00:00', 'Energy Use', 0.18),
+(3, '2022-09-05 10:00:00', 'Energy Use', 0.22),
+(3, '2022-09-25 10:00:00', 'Energy Use', 0.25);
 
 -- EnergyPrice
--- 添加一些能源价格数据
 INSERT INTO EnergyPrice (Zcode, Timestamp, Price) VALUES
 ('12345', '2023-08-01 08:00:00', 0.15),
 ('54321', '2023-08-01 09:00:00', 0.18),
@@ -69,63 +94,13 @@ INSERT INTO EnergyPrice (Zcode, Timestamp, Price) VALUES
 ('54321', '2023-08-10 15:00:00', 0.19),
 ('54321', '2023-08-15 21:00:00', 0.17),
 ('67890', '2023-08-20 10:00:00', 0.21),
-('67890', '2023-08-22 07:00:00', 0.18);
-
-
-INSERT INTO Event (DeviceID, Timestamp, EventLabel, Value) VALUES
-(1, '2022-08-05 10:00:00', 'Energy Use', 0.15),
-(1, '2022-08-10 10:00:00', 'Energy Use', 0.20),
-(2, '2022-08-15 10:00:00', 'Energy Use', 0.10),
-(2, '2022-08-20 10:00:00', 'Energy Use', 0.12),
-(1, '2022-08-25 10:00:00', 'Energy Use', 0.18);
-
-INSERT INTO Event (DeviceID, Timestamp, EventLabel, Value) VALUES
-(1, '2022-08-03 09:00:00', 'Energy Use', 0.16),
-(1, '2022-08-07 10:00:00', 'Energy Use', 0.20),
-(2, '2022-08-10 14:00:00', 'Energy Use', 0.11),
-(2, '2022-08-22 08:30:00', 'Energy Use', 0.13),
-(3, '2022-08-15 11:00:00', 'Energy Use', 0.15),
-(3, '2022-08-28 09:45:00', 'Energy Use', 0.19);
-
-INSERT INTO EnergyPrice (Zcode, Timestamp, Price) VALUES
+('67890', '2023-08-22 07:00:00', 0.18),
 ('12345', '2022-08-05 10:00:00', 0.12),
 ('12345', '2022-08-15 10:00:00', 0.15),
-('54321', '2022-08-20 10:00:00', 0.10);
-
-INSERT INTO EnergyPrice (Zcode, Timestamp, Price) VALUES
+('54321', '2022-08-20 10:00:00', 0.10),
 ('12345', '2022-08-03 09:00:00', 0.13),
 ('12345', '2022-08-07 10:00:00', 0.14),
 ('54321', '2022-08-10 14:00:00', 0.17),
 ('54321', '2022-08-22 08:30:00', 0.16),
 ('67890', '2022-08-15 11:00:00', 0.20),
 ('67890', '2022-08-28 09:45:00', 0.18);
-
-INSERT INTO ServiceLocation (ServiceLocationId, CustomerId, Building, UnitNumber, TakeOverDate, SquareFootage, NumberOfBedrooms, NumberOfOccupants, Zcode) VALUES
-(5, 4, 'Birch St Building', 8, '2022-03-15', 1140, 1, 2, '12345'),
-(6, 4, 'Oak Rd Complex', 9, '2022-04-10', 1180, 1, 1, '54321');
-
-INSERT INTO Device (ServiceLocationId, Type, ModelNumber) VALUES
-(5, 'Heater', 'HeatMax 200'),
-(6, 'AC System', 'CoolPro AC400');
-
-INSERT INTO Event (DeviceId, Timestamp, EventLabel, Value) VALUES
-(12, '2022-08-03 11:00:00', 'Energy Use', 0.22),
-(12, '2022-08-15 13:30:00', 'Energy Use', 0.25),
-(13, '2022-08-12 14:00:00', 'Energy Use', 0.19),
-(13, '2022-08-22 15:45:00', 'Energy Use', 0.21);
-
-INSERT INTO Event (DeviceId, Timestamp, EventLabel, Value) VALUES
-(1, '2022-08-05 10:00:00', 'Energy Use', 0.15),
-(1, '2022-08-12 10:00:00', 'Energy Use', 0.17),
-(2, '2022-08-09 10:00:00', 'Energy Use', 0.12),
-(2, '2022-08-27 10:00:00', 'Energy Use', 0.14),
-(3, '2022-08-15 10:00:00', 'Energy Use', 0.18),
-(3, '2022-08-23 10:00:00', 'Energy Use', 0.20);
-
-INSERT INTO Event (DeviceId, Timestamp, EventLabel, Value) VALUES
-(1, '2022-09-03 10:00:00', 'Energy Use', 0.25),
-(1, '2022-09-20 10:00:00', 'Energy Use', 0.30),
-(2, '2022-09-10 10:00:00', 'Energy Use', 0.16),
-(2, '2022-09-26 10:00:00', 'Energy Use', 0.18),
-(3, '2022-09-05 10:00:00', 'Energy Use', 0.22),
-(3, '2022-09-25 10:00:00', 'Energy Use', 0.25);

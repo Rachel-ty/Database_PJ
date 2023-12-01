@@ -1,13 +1,19 @@
-drop table Customer;
-ALTER TABLE Customer AUTO_INCREMENT = 1;
+-- drop before creation
+DROP TABLE Event;
+DROP TABLE Device;
+DROP TABLE Servicelocation;
+DROP TABLE Energyprice;
+DROP TABLE Customer;
+
+
 CREATE TABLE Customer (
     CustomerID INT AUTO_INCREMENT PRIMARY KEY,
     Name VARCHAR(255),
     BillingAddress VARCHAR(255)
 );
+ALTER TABLE Customer AUTO_INCREMENT = 1;
 
-drop table ServiceLocation;
-ALTER TABLE ServiceLocation AUTO_INCREMENT = 1;
+
 CREATE TABLE ServiceLocation (
     ServiceLocationID INT AUTO_INCREMENT PRIMARY KEY,
     CustomerID INT,
@@ -20,9 +26,9 @@ CREATE TABLE ServiceLocation (
     Zcode VARCHAR(10),
         FOREIGN KEY (CustomerID) REFERENCES Customer(CustomerID)
 );
+ALTER TABLE ServiceLocation AUTO_INCREMENT = 1;
 
-drop table Device;
-ALTER TABLE Device AUTO_INCREMENT = 1;
+
 CREATE TABLE Device (
     DeviceID INT AUTO_INCREMENT PRIMARY KEY,
     ServiceLocationID INT,
@@ -30,9 +36,9 @@ CREATE TABLE Device (
     ModelNumber VARCHAR(50),
     FOREIGN KEY (ServiceLocationID) REFERENCES ServiceLocation(ServiceLocationID)
 );
+ALTER TABLE Device AUTO_INCREMENT = 1;
 
-drop table Event;
-ALTER TABLE Event AUTO_INCREMENT = 1;
+
 CREATE TABLE Event (
     EventID INT AUTO_INCREMENT PRIMARY KEY,
     DeviceID INT,
@@ -41,8 +47,9 @@ CREATE TABLE Event (
     Value DECIMAL(10, 2),
     FOREIGN KEY (DeviceID) REFERENCES Device(DeviceID)
 );
+ALTER TABLE Event AUTO_INCREMENT = 1;
 
-drop table EnergyPrice;
+
 CREATE TABLE EnergyPrice (
     Zcode VARCHAR(10),
     Timestamp DATETIME,
