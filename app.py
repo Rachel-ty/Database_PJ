@@ -47,6 +47,7 @@ def query():
         
         cursor.close()
         conn.close()
+        # return redirect(url_for('index'))  # how to redirect
     return render_template('query.html', form=query_form, record=record)
 
 
