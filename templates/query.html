@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}
+    Query Result
+{% endblock %}
+
+{% block page_content %}
+{{ wtf.quick_form(form)}}
+    <h1>Record List</h1>
+    {% if record %}
+    <ul>
+        {% for dict in record %}
+            {% for key, value in dict.items() %}
+                <li>{{ key }}: {{ value }};</li>
+            {% endfor %}
+            <br>
+        {% endfor %}
+    </ul>
+    {% else %}
+        <p>No records found</p>
+    {% endif %}
+{% endblock %}

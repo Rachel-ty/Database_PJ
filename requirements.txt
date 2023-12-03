@@ -1,2 +1,5 @@
 flask
 PyMySQL
+flask-bootstrap
+flask-moment
+flask_wtf

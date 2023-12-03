@@ -1,8 +1,16 @@
 from flask import Flask, request, jsonify
 import pymysql
+from flask import render_template
+from flask_bootstrap import Bootstrap
+from flask_moment import Moment
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField
+from wtforms.validators import DataRequired
 
 app = Flask(__name__)
-
+Bootstrap(app)
+moment = Moment(app)
+app.config['SECRET_KEY'] = "TYHuang"
 
 db_config = {
     'host': 'localhost',
@@ -18,30 +26,34 @@ def get_db_connection():
 
     
 @app.route('/', methods=['GET'])
-def main_page():
-    conn = get_db_connection()
-    cursor = conn.cursor(pymysql.cursors.DictCursor)
-    
-    cursor.execute("""
-        SELECT Device.DeviceId, SUM(Event.Value) AS TotalConsumption 
-        FROM Event 
-        JOIN Device ON Event.DeviceId = Device.DeviceId 
-        WHERE EventLabel = 'Energy Use' 
-        AND Timestamp > '2023-08-01 15:40:00' - INTERVAL 1 DAY 
-        AND Device.ServiceLocationId IN (
-            SELECT ServiceLocationId 
-            FROM ServiceLocation 
-            WHERE CustomerId = 1
-        ) 
-        GROUP BY Device.DeviceId;
-    """)
-    
-    record = cursor.fetchall()
+def index():
+    return render_template('index.html')
 
-    cursor.close()
-    conn.close()
 
-    return jsonify(record)
+class QueryForm(FlaskForm):
+    query = StringField('Query', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+@app.route('/Query', methods=['GET', 'POST'])
+def query():
+    query_form = QueryForm()
+    record = None
+    if query_form.validate_on_submit():
+        conn = get_db_connection()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+
+        cursor.execute(query_form.query.data)
+        record = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+    return render_template('query.html', form=query_form, record=record)
+
+
+@app.route('/About', methods=['GET'])
+def about():
+    return render_template('about.html')
+
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True, port=8000)

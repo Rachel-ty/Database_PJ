@@ -127,3 +127,10 @@ GROUP BY
 ORDER BY 
     IncreasePercentage DESC
 LIMIT 1;
+
+
+-- SELECT * FROM Event;
+-- SELECT * FROM Device;
+-- SELECT * FROM ServiceLocation;
+-- SELECT * FROM EnergyPrice;
+-- SELECT * FROM Customer;
