@@ -11,7 +11,7 @@ CREATE TABLE Customer (
     Name VARCHAR(255),
     BillingAddress VARCHAR(255),
     Password VARCHAR(255),
-    Email VARCHAR(255)
+    Email VARCHAR(255) UNIQUE
 );
 ALTER TABLE Customer AUTO_INCREMENT = 1;
 

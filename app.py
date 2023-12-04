@@ -84,6 +84,9 @@ def signup():
     form = RegistrationForm()
     if form.validate_on_submit():
         # Todo: Write query to insert user into database; add logic checking
+        conn = get_db_connection()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        cursor.execute("INSERT INTO User (Email, Password) VALUES (%s, %s)", (form.email.data, form.password.data))
         return redirect(url_for('login'))
     return render_template('signup.html', title='Sign Up', form=form)
 
