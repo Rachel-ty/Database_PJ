@@ -3,3 +3,4 @@ PyMySQL
 flask-bootstrap
 flask-moment
 flask_wtf
+flask-login
