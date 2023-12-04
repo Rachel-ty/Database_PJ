@@ -1,3 +1,5 @@
+# some helper commands to setup the project
+
 # conda create -n database_PJ python=3.8
 # conda activate database_PJ
 pip install -r requirements.txt
@@ -14,3 +16,5 @@ EXIT;
 
 mysql -u DB_admin -p
 # enter your DB_admin password
+
+# gunicorn -w 4 app:app
