@@ -1,5 +1,5 @@
 -- Customer
-INSERT INTO Customer (Name, BillingAddress, Password, Email) VALUES
+INSERT INTO Customer (UserName, BillingAddress, Password, Email) VALUES
 ('John Doe', '123 Maple St, Springfield', 'password123', 'johndoe@example.com'),
 ('Jane Smith', '456 Oak Ave, Centerville', 'password456', 'janesmith@example.com'),
 ('Alex Johnson', '789 Pine Rd, Lakeview', 'password789', 'alexjohnson@example.com'),
