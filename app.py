@@ -105,12 +105,51 @@ def login():
 
     return render_template('login.html', form=form)
 
-
 @app.route('/logout')
 @login_required
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/locations', methods=['GET', 'POST'])
+@login_required
+def locations():
+    # Todo: Write query to get devices from database
+    # Todo: Allow user to delete a device
+    # Todo: Allow user to add a location by submitting a form
+    locations = [{"CustomerID": 1,
+                "ServiceLocationID": 1,
+                "Building": "123 Maple St Building", 
+                "UnitNumber": 5, 
+                "TakeOverTime": "2021-06-01",
+                "SquareFootage": 1200,
+                "NumberOfBedrooms": 2,
+                "NumberOfOccupants": 4,
+                "Zcode": '12345'}]
+    return render_template('locations.html', locations=locations)
+
+@app.route('/location/<int:location_id>', methods=['GET', 'POST'])
+@login_required
+def devices(location_id):
+    # Todo: Write query to get all devices from database and show them
+    # Todo: Allow user to delete a device
+    # Todo: Allow user to add new device by 
+    #   1. first selecting from user prestored device type list
+    #   2. choose the device model from the prestored model list
+    devices = [{"DeviceID": 1,
+                "ServiceLocationID": 1,
+                "Type": "Refrigerator", 
+                "ModelName": "Samsung 1234"}]
+    return render_template('devices.html', devices=devices)
+
+
+@app.route('/energy_consumption_analysis', methods=['GET', 'POST'])
+@login_required
+def energy_consumption_analysis():
+    # Todo: provide several(4-5) analysis options(views) for user to choose
+    # Todo: create visualization for each analysis option
+    return render_template('analysis.html')
+
 
 
 if __name__ == '__main__':

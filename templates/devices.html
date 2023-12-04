@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}
+    Devices
+{% endblock %}
+
+{% block page_content %}
+<div class="container mt-4">
+    <h2>devices</h2>
+    <ul class="list-group">
+        {% for device in devices %}
+            <li class="list-group-item">
+                {{ device.Type }} (Name: {{ device.ModelName }})
+                <a class="btn btn-primary float-right">Details</a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

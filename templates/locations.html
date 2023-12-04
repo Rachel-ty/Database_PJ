@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}
+    ServiceLocations
+{% endblock %}
+
+{% block page_content %}
+<div class="container mt-4">
+    <h2>Service Locations</h2>
+    <ul class="list-group">
+        {% for location in locations %}
+            <li class="list-group-item">
+                {{ location.Building }} (Unit: {{ location.UnitNumber }})
+                <a href="{{ url_for('devices', location_id=location.ServiceLocationID) }}" class="btn btn-primary float-right">Details</a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
