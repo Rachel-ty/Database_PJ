@@ -19,7 +19,7 @@ INSERT INTO ServiceLocation (CustomerID, Building, UnitNumber, TakeOverDate, Squ
 
 
 -- Device
-INSERT INTO Device (ServiceLocationID, Type, ModelNumber) VALUES
+INSERT INTO Device (ServiceLocationID, Type, ModelName) VALUES
 (1, 'AC System', 'Samsung AC123'),
 (1, 'Refrigerator', 'LG Fridge 400'),
 (2, 'Washer', 'Bosch Wash500'),

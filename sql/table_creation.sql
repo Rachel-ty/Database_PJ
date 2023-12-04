@@ -44,7 +44,7 @@ CREATE TABLE Device (
     DeviceID INT AUTO_INCREMENT PRIMARY KEY,
     ServiceLocationID INT,
     Type VARCHAR(50),
-    ModelNumber VARCHAR(50),
+    ModelName VARCHAR(50),
     FOREIGN KEY (ServiceLocationID) REFERENCES ServiceLocation(ServiceLocationID)
 );
 ALTER TABLE Device AUTO_INCREMENT = 1;

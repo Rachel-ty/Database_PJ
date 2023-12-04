@@ -88,7 +88,7 @@ def signup():
         conn = get_db_connection()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
         insert_query = """
-            INSERT INTO User (UserName, Email, Password, BillingAddress) 
+            INSERT INTO Customer (UserName, Email, Password, BillingAddress) 
             VALUES (%s, %s, %s, %s)
         """
         data = (
@@ -98,7 +98,7 @@ def signup():
             form.billing_address.data
         )
         cursor.execute(insert_query, data)
-        
+        print(cursor.fetchall())   
         return redirect(url_for('login'))
     return render_template('signup.html', title='Sign Up', form=form)
 
