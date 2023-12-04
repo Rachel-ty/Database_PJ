@@ -1,5 +1,5 @@
 -- Customer
-INSERT INTO Customer (Name, BillingAddress, Password, Email) VALUES
+INSERT INTO Customer (UserName, BillingAddress, Password, Email) VALUES
 ('John Doe', '123 Maple St, Springfield', 'password123', 'johndoe@example.com'),
 ('Jane Smith', '456 Oak Ave, Centerville', 'password456', 'janesmith@example.com'),
 ('Alex Johnson', '789 Pine Rd, Lakeview', 'password789', 'alexjohnson@example.com'),
@@ -19,7 +19,7 @@ INSERT INTO ServiceLocation (CustomerID, Building, UnitNumber, TakeOverDate, Squ
 
 
 -- Device
-INSERT INTO Device (ServiceLocationID, Type, ModelNumber) VALUES
+INSERT INTO Device (ServiceLocationID, Type, ModelName) VALUES
 (1, 'AC System', 'Samsung AC123'),
 (1, 'Refrigerator', 'LG Fridge 400'),
 (2, 'Washer', 'Bosch Wash500'),

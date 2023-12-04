@@ -24,7 +24,7 @@ SELECT
     OpenEvent.Timestamp, 
     Device.ServiceLocationID, 
     OpenEvent.DeviceId, 
-    Device.ModelNumber
+    Device.ModelName
 FROM
     (SELECT *
      FROM Event

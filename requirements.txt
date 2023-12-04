@@ -5,3 +5,4 @@ flask-moment
 flask_wtf
 flask-login
 gunicorn
+email_validator

@@ -14,7 +14,10 @@
                     <h2 class="text-center">Login</h2>
                 </div>
                 <div class="card-body">
-                    {{ wtf.quick_form(form, button_map={"submit": "btn btn-primary"}) }}
+                        {{ wtf.quick_form(form, button_map={"submit": "btn btn-primary"}) }} 
+                        
+                        <a href="{{ url_for('signup') }}" class="btn btn-primary" style="margin-top: 10px;">Sigh Up</a>
+                    </div>
                 </div>
             </div>
         </div>

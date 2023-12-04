@@ -88,6 +88,7 @@ class User(UserMixin):
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
+    billing_address = StringField('Billing Address', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
     submit = SubmitField('Sign Up')
@@ -97,6 +98,20 @@ def signup():
     form = RegistrationForm()
     if form.validate_on_submit():
         # Todo: Write query to insert user into database; add logic checking
+        conn = get_db_connection()
+        cursor = conn.cursor(pymysql.cursors.DictCursor)
+        insert_query = """
+            INSERT INTO Customer (UserName, Email, Password, BillingAddress) 
+            VALUES (%s, %s, %s, %s)
+        """
+        data = (
+            form.username.data, 
+            form.email.data, 
+            form.password.data, 
+            form.billing_address.data
+        )
+        cursor.execute(insert_query, data)
+        print(cursor.fetchall())   
         return redirect(url_for('login'))
     return render_template('signup.html', title='Sign Up', form=form)
 

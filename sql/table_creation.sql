@@ -8,13 +8,22 @@ DROP TABLE Customer;
 
 CREATE TABLE Customer (
     CustomerID INT AUTO_INCREMENT PRIMARY KEY,
-    Name VARCHAR(255),
+    UserName VARCHAR(255),
     BillingAddress VARCHAR(255),
     Password VARCHAR(255),
-    Email VARCHAR(255)
+    Email VARCHAR(255) UNIQUE
 );
 ALTER TABLE Customer AUTO_INCREMENT = 1;
 
+-- CREATE TRIGGER CheckEmailBeforeInsertOrUpdate
+-- BEFORE INSERT ON Customer
+-- FOR EACH ROW
+-- BEGIN
+--     IF NEW.Email NOT REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$' THEN
+--         SIGNAL SQLSTATE '45000'
+--         SET MESSAGE_TEXT = 'Invalid email format';
+--     END IF;
+-- END;
 
 CREATE TABLE ServiceLocation (
     ServiceLocationID INT AUTO_INCREMENT PRIMARY KEY,
@@ -35,7 +44,7 @@ CREATE TABLE Device (
     DeviceID INT AUTO_INCREMENT PRIMARY KEY,
     ServiceLocationID INT,
     Type VARCHAR(50),
-    ModelNumber VARCHAR(50),
+    ModelName VARCHAR(50),
     FOREIGN KEY (ServiceLocationID) REFERENCES ServiceLocation(ServiceLocationID)
 );
 ALTER TABLE Device AUTO_INCREMENT = 1;
