@@ -1,9 +1,10 @@
 -- Customer
-INSERT INTO Customer (Name, BillingAddress) VALUES
-('John Doe', '123 Maple St, Springfield'),
-('Jane Smith', '456 Oak Ave, Centerville'),
-('Alex Johnson', '789 Pine Rd, Lakeview'),
-('Maria Garcia', '101 Birch Ln, Mountainville');
+INSERT INTO Customer (Name, BillingAddress, Password, Email) VALUES
+('John Doe', '123 Maple St, Springfield', 'password123', 'johndoe@example.com'),
+('Jane Smith', '456 Oak Ave, Centerville', 'password456', 'janesmith@example.com'),
+('Alex Johnson', '789 Pine Rd, Lakeview', 'password789', 'alexjohnson@example.com'),
+('Maria Garcia', '101 Birch Ln, Mountainville', 'password101', 'mariagarcia@example.com');
+
 
 
 

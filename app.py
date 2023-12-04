@@ -100,8 +100,11 @@ def login():
     if form.validate_on_submit():
         # Todo: validate user login info
         user = User(form.email.data)
-        login_user(user)
-        return redirect(url_for('index'))
+        if user and user.check_password(form.password.data):
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            flash('Invalid email or password')
 
     return render_template('login.html', form=form)
 
