@@ -1,3 +1,4 @@
+from curses import flash
 from flask import Flask, render_template, redirect, url_for
 import pymysql
 from flask_bootstrap import Bootstrap
@@ -6,6 +7,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email, EqualTo
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+
 
 app = Flask(__name__)
 Bootstrap(app)
@@ -63,14 +65,25 @@ def about():
     return render_template('about.html')
 
 class User(UserMixin):
-    def __init__(self, id):
+    def __init__(self, id, email):
         self.id = id
+        self.email=email
 
     @staticmethod
     @login_manager.user_loader
     def get(user_id):
         # Todo: Write query get user from database
-        return User(user_id)
+        conn=get_db_connection()
+        cur=conn.cursor()
+        cur.execute('SELECT * FROM Customer Where CustomerId=%s',(user_id,))
+        user_data=cur.fetchone()
+        cur.close()
+        conn.close()
+        if user_data:
+            return User(id=user_data[0],email=user_data[4])
+        return None
+    
+
 
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
@@ -99,8 +112,16 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         # Todo: validate user login info
-        user = User(form.email.data)
-        if user and user.check_password(form.password.data):
+        email=form.email.data
+        password=form.password.data
+        conn=get_db_connection()
+        cur=conn.cursor()
+        cur.execute('SELECT * FROM Customer WHERE Email=%s', (email,))
+        user=cur.fetchone()
+        cur.close()
+        conn.close()
+        if user and user[3]==password:
+            user=User(id=user[0],email=user[4])
             login_user(user)
             return redirect(url_for('index'))
         else:

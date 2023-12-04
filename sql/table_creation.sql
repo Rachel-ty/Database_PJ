@@ -15,15 +15,6 @@ CREATE TABLE Customer (
 );
 ALTER TABLE Customer AUTO_INCREMENT = 1;
 
-CREATE TRIGGER CheckEmailBeforeInsertOrUpdate
-BEFORE INSERT ON Customer
-FOR EACH ROW
-BEGIN
-    IF NEW.Email NOT REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$' THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Invalid email format';
-    END IF;
-END;
 
 CREATE TABLE ServiceLocation (
     ServiceLocationID INT AUTO_INCREMENT PRIMARY KEY,
