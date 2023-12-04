@@ -1,5 +1,4 @@
-from curses import flash
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, flash
 import pymysql
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
@@ -43,7 +42,7 @@ class QueryForm(FlaskForm):
     submit = SubmitField('Submit')
 
 @app.route('/query', methods=['GET', 'POST'])
-@login_required
+# @login_required
 def query():
     query_form = QueryForm()
     record = None
@@ -110,7 +109,13 @@ def signup():
             form.password.data, 
             form.billing_address.data
         )
-        cursor.execute(insert_query, data)
+        try:
+            cursor.execute(insert_query, data)
+            conn.commit()  # commit to make changes persistent in the database
+            print("Query executed successfully")
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            conn.rollback()  # rollback to the previous state if any error occurred
         print(cursor.fetchall())   
         return redirect(url_for('login'))
     return render_template('signup.html', title='Sign Up', form=form)
@@ -129,18 +134,21 @@ def login():
         # Todo: validate user login info
         email=form.email.data
         password=form.password.data
+        print(email,password)
         conn=get_db_connection()
-        cur=conn.cursor()
+        # cur=conn.cursor()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
         cur.execute('SELECT * FROM Customer WHERE Email=%s', (email,))
         user=cur.fetchone()
+        print(user)
         cur.close()
         conn.close()
-        if user and user[3]==password:
-            user=User(id=user[0],email=user[4])
+        if user and user['Password']==password:
+            user=User(id=user['CustomerID'],email=user['Email'])
             login_user(user)
             return redirect(url_for('index'))
         else:
-            flash('Invalid email or password')
+            flash("Invalid email or password")
 
     return render_template('login.html', form=form)
 
