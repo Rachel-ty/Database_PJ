@@ -209,6 +209,21 @@ def locations():
    #             "Zcode": '12345'}]
     return render_template('locations.html', form=form, locations=locations)
 
+@app.route('/delete_location/<int:location_id>', methods=['POST'])
+@login_required
+def delete_location(location_id):
+    conn = get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    cur.execute('DELETE FROM Device WHERE ServiceLocationID = %s', (location_id,))
+    cur.execute('DELETE FROM ServiceLocation WHERE ServiceLocationID = %s', (location_id,))
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    flash('Service location deleted successfully')
+    return redirect(url_for('locations'))
+
 class NewDeviceForm(FlaskForm):
     first_choice = SelectField('Device Type', 
                                choices=[('AC System', 'AC System'),  # (value, label)

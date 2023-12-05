@@ -11,9 +11,12 @@
     <ul class="list-group">
         {% for location in locations %}
             <li class="list-group-item">
-                <a href="{{ url_for('devices', location_id=location.ServiceLocationID) }}">
+              <a href="{{ url_for('devices', location_id=location.ServiceLocationID) }}">
                     {{ location.Building }} (Unit: {{ location.UnitNumber }})
-                </a>
+              </a>
+              <form action="{{ url_for('delete_location', location_id=location.ServiceLocationID) }}" method="post">
+                  <input type="submit" value="Delete" class="btn btn-danger">
+              </form>
             </li>
         {% endfor %}
     </ul>
