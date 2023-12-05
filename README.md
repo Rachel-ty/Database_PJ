@@ -6,7 +6,7 @@
 
 分工：
 
-hty：完成location和device的增删查：
+hty：完成location和device的增删查：(done)
 
 *the interface should allow users to register, to login, and to list, add, and remove service locations and smart devices. When adding a new smart device, the system should allow the user to select the type of device (refrigerator, AC, dryer, etc), and then to choose from a list of prestored models (Bosch 800 refrigerator, IKEA smart light bulb, GE 4500 Air Conditioner, etc.) for that type of device.* 
 
