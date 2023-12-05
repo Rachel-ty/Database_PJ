@@ -253,7 +253,7 @@ def devices(location_id):
         elif form.first_choice.data == 'Refrigerator':
             form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
     if form.validate_on_submit():
-        cur.execute('INSERT INTO Device (ServiceLocationID, Type, ModelNumber) VALUES (%s, %s, %s)', 
+        cur.execute('INSERT INTO Device (ServiceLocationID, Type, ModelName) VALUES (%s, %s, %s)', 
                     (location_id, device_type, device_model))
         conn.commit()
         flash('New device added')
