@@ -6,15 +6,43 @@
 {% endblock %}
 
 {% block page_content %}
-<div class="container mt-4">
-    <h2>devices</h2>
-    <ul class="list-group">
-        {% for device in devices %}
-            <li class="list-group-item">
-                {{ device.Type }} (Name: {{ device.ModelName }})
-                <a class="btn btn-primary float-right">Details</a>
-            </li>
-        {% endfor %}
-    </ul>
-</div>
+    <div class="container mt-4">
+        <h2>devices</h2>
+        <ul class="list-group">
+            {% for device in devices %}
+                <li class="list-group-item">
+                    {{ device.Type }} (Name: {{ device.ModelName }})
+                    <a class="btn btn-primary float-right">Details</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <h3> Add new device </h3>
+    {{ wtf.quick_form(form) }}
 {% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('first_choice').addEventListener('change', function() {
+        var choice = this.value;
+        updateSecondChoice(choice);
+    });
+
+    function updateSecondChoice(firstChoice) {
+        // 根据 firstChoice 的值来决定 secondChoice 的选项
+        var options = {
+            'AC System': [{'text': 'LG AC310'}, {'text': 'Samsung AC123'}],
+            'Refrigerator': [{'text': 'LG Fridge 400'}, {'text': 'Samsung Fridge500'}]
+        };
+        var secondChoice = document.getElementById('second_choice');
+        secondChoice.innerHTML = '';  // 清空现有选项
+        options[firstChoice].forEach(function(item) {
+            var option = new Option(item.text, 1);
+            console.log(option);
+            secondChoice.add(option);
+        });
+    }
+</script>
+{% endblock %}
+
