@@ -36,13 +36,13 @@
     function updateSecondChoice(firstChoice) {
         // 根据 firstChoice 的值来决定 secondChoice 的选项
         var options = {
-            'AC System': [{'text': 'LG AC310'}, {'text': 'Samsung AC123'}],
-            'Refrigerator': [{'text': 'LG Fridge 400'}, {'text': 'Samsung Fridge500'}]
+            'AC System': [{'text': 'LG AC310', 'value': 'LG AC310'}, {'text': 'Samsung AC123', 'value': 'Samsung AC123'}],
+            'Refrigerator': [{'text': 'LG Fridge 400', 'value': 'LG Fridge 400'}, {'text': 'Samsung Fridge500', 'value': 'Samsung Fridge500'}]
         };
         var secondChoice = document.getElementById('second_choice');
         secondChoice.innerHTML = '';  // 清空现有选项
         options[firstChoice].forEach(function(item) {
-            var option = new Option(item.text, 1);
+            var option = new Option(item.text, item.value);
             console.log(option);
             secondChoice.add(option);
         });
