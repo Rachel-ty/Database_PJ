@@ -1,3 +1,5 @@
+import base64
+from io import BytesIO
 from flask import Flask, render_template, redirect, url_for, flash, request
 import pymysql
 from flask_bootstrap import Bootstrap
@@ -6,6 +8,10 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, StringField, PasswordField, SubmitField, IntegerField, DateField, SelectField
 from wtforms.validators import DataRequired, Email, EqualTo
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# from get_choices import get_device_types
 
 
 app = Flask(__name__)
@@ -296,26 +302,60 @@ def delete_device(location_id,device_id):
 
 class AnalysisForm(FlaskForm):
     first_choice = SelectField('Device Type', 
-                               choices=[('daily energy use', 'daily energy use'),  # (value, label)
-                                        ('monthly energy use per device type', 'monthly energy use per device type')])
+                               choices=[('energy use', 'energy use'),  # (value, label)
+                                        ('energy charges', 'energy charges'),
+                                        ('piechart for energy use percentage per device type', 'piechart for energy use percentage per device type')])
+    second_choice = SelectField(choices=[])
     submit = SubmitField('Submit')
-    
+
+
 @app.route('/energy_consumption_analysis', methods=['GET', 'POST'])
 @login_required
 def energy_consumption_analysis():
     # Todo: provide several(4-5) analysis options(views) for user to choose
     # Todo: create visualization for each analysis option
     form = AnalysisForm()
-    if form.validate_on_submit():
+    image_base64 = None
+    if request.method == 'POST':
         conn = get_db_connection()
-        if form.first_choice.data == 'daily energy use':
+        if form.first_choice.data == 'energy use':  # TODO: options: location, device type, device model, time granularity
             pass
-        elif form.first_choice.data == 'monthly energy use per device type':
+        elif form.first_choice.data == 'energy charges':
+            pass
+        elif form.first_choice.data == 'piechart for energy use percentage per device type':  # options: location, time granularity: month
+            cur = conn.cursor(pymysql.cursors.DictCursor)
+            
+            # Todo: write query and get data
+            
+            cur.close()
+            conn.close()
+            
+            labels = ['A', 'B', 'C', 'D']
+            sizes = [15, 30, 45, 10]
+
+            # draw a pie chart
+            plt.figure(figsize=(8, 8))
+            plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+
+            # save chart to byte stream
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png')
+            buffer.seek(0)
+            plt.close()
+
+            # transfer byte stream to base64 encoded string
+            image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+
+            # embed image in HTML template
+            return render_template('analysis.html', form=form, image_base64=image_base64)
+            
+        elif form.first_choice.data == '':
             pass
         else:
-            pass
+            flash('Invalid choice')
             
-    return render_template('analysis.html', form=form)
+    return render_template('analysis.html', form=form, image_base64=image_base64)
+
 
 
 if __name__ == '__main__':
