@@ -3,9 +3,9 @@ import pymysql
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, SubmitField, SelectField, IntegerField
+from wtforms import StringField, SubmitField, StringField, PasswordField, SubmitField, IntegerField, DateField, SelectField
 from wtforms.validators import DataRequired, Email, EqualTo
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 
 
 app = Flask(__name__)
@@ -78,6 +78,7 @@ class User(UserMixin):
         user_data=cur.fetchone()
         cur.close()
         conn.close()
+        print(user_data)
         if user_data:
             return User(id=user_data[0],email=user_data[4])
         return None
@@ -158,34 +159,55 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-
-class NewLocationForm(FlaskForm):
-    building = StringField('Building', validators=[DataRequired()])
-    unit_number = IntegerField('Unit Number', validators=[DataRequired()])
-    takeover_time = StringField('Takeover Time', validators=[DataRequired()])
-    square_footage = IntegerField('Square Footage', validators=[DataRequired()])
-    number_of_bedrooms = IntegerField('Number of Bedrooms', validators=[DataRequired()])
-    number_of_occupants = IntegerField('Number of Occupants', validators=[DataRequired()])
-    zcode = StringField('Zcode', validators=[DataRequired()])
-    submit = SubmitField('Add Service Location')
+class ServiceLocationForm(FlaskForm):
+    building=StringField('Building', validators=[DataRequired()])
+    unit_number=IntegerField('Unit Number', validators=[DataRequired()])
+    takeover_time=DateField('Takeover Time', validators=[DataRequired()])
+    square_footage=IntegerField('Square Footage',validators=[DataRequired()])
+    number_of_bedrooms= IntegerField('Number of Bedrooms', validators=[DataRequired()])
+    number_of_occupants= IntegerField('Number of Occupants', validators=[DataRequired()])
+    zcode=StringField('Zip Code',validators=[DataRequired()])
+    submit=SubmitField('Add Location')
 
 @app.route('/locations', methods=['GET', 'POST'])
 @login_required
 def locations():
-    # Todo: Write query to get devices from database
-    # Todo: Allow user to delete a device
-    # Todo: Allow user to add a location by submitting a form
-    form = NewLocationForm()
-    locations = [{"CustomerID": 1,
-                "ServiceLocationID": 1,
-                "Building": "123 Maple St Building", 
-                "UnitNumber": 5, 
-                "TakeOverTime": "2021-06-01",
-                "SquareFootage": 1200,
-                "NumberOfBedrooms": 2,
-                "NumberOfOccupants": 4,
-                "Zcode": '12345'}]
-    return render_template('locations.html', locations=locations, form=form)
+    # Todo: Write query to get devices from database (done)
+    # Todo: Allow user to delete a device (done)
+    # Todo: Allow user to add a location by submitting a form (done)
+    form=ServiceLocationForm()
+    conn=get_db_connection()
+    cur=conn.cursor(pymysql.cursors.DictCursor)
+
+    if form.validate_on_submit():
+        data=(
+            current_user.id,
+            form.building.data,
+            form.unit_number.data,
+            form.takeover_time.data,
+            form.square_footage.data,
+            form.number_of_bedrooms.data,
+            form.number_of_occupants.data,
+            form.zcode.data
+        )
+        cur.execute('INSERT INTO ServiceLocation (CustomerID, Building, UnitNumber, TakeOverDate, SquareFootage, NumberOfBedrooms, NumberOfOccupants, Zcode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', data)
+        conn.commit()
+
+    cur.execute('Select * from ServiceLocation where CustomerID=%s',(current_user.id,))
+    locations=cur.fetchall()
+    cur.close()
+    conn.close()
+
+   # locations = [{"CustomerID": 1,
+   #             "ServiceLocationID": 1,
+   #             "Building": "123 Maple St Building", 
+   #             "UnitNumber": 5, 
+   #             "TakeOverTime": "2021-06-01",
+   #             "SquareFootage": 1200,
+   #             "NumberOfBedrooms": 2,
+   #             "NumberOfOccupants": 4,
+   #             "Zcode": '12345'}]
+    return render_template('locations.html', form=form, locations=locations)
 
 class NewDeviceForm(FlaskForm):
     first_choice = SelectField('Device Type', 
@@ -194,30 +216,67 @@ class NewDeviceForm(FlaskForm):
     second_choice = SelectField('Device Model', choices=[])
     submit = SubmitField('Add Device')
 
+
 @app.route('/location/<int:location_id>', methods=['GET', 'POST'])
 @login_required
 def devices(location_id):
-    # Todo: Write query to get all devices from database and show them
-    # Todo: Allow user to delete a device
-    # Todo: Allow user to add new device by 
+    # Todo: Write query to get all devices from database and show them (done)
+    # Todo: Allow user to delete a device (done)
+    # Todo: Allow user to add new device by  (DONE)
     #   1. first selecting from user prestored device type list
     #   2. choose the device model from the prestored model list
     form = NewDeviceForm()
-    devices = [{"DeviceID": 1,
-                "ServiceLocationID": 1,
-                "Type": "Refrigerator", 
-                "ModelName": "Samsung 1234"}]
+    conn=get_db_connection()
+    cur=conn.cursor(pymysql.cursors.DictCursor)
     if request.method == 'POST':
+
         device_type = form.first_choice.data
         device_model = form.second_choice.data
-        
-        # recover the second choices after submission
         if form.first_choice.data == 'AC System':
             form.second_choice.choices = [('LG AC310', 'LG AC310'), ('Samsung AC123', 'Samsung AC123')]
         elif form.first_choice.data == 'Refrigerator':
             form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
+    if form.validate_on_submit():
+        cur.execute('INSERT INTO Device (ServiceLocationID, Type, ModelNumber) VALUES (%s, %s, %s)', 
+                    (location_id, device_type, device_model))
+        conn.commit()
+        flash('New device added')
+        return redirect(url_for('devices', location_id=location_id))
+    cur.execute('Select * from Device where ServiceLocationID=%s',(location_id,))
+    devices=cur.fetchall()
+    cur.close()
+    conn.close()
+        
+   # devices = [{"DeviceID": 1,
+   #             "ServiceLocationID": 1,
+   #             "Type": "Refrigerator", 
+   #             "ModelName": "Samsung 1234"}]
+  # if request.method == 'POST':
+  #     device_type = form.first_choice.data
+  #     device_model = form.second_choice.data
+  #     
+  #     # recover the second choices after submission
+  #     if form.first_choice.data == 'AC System':
+  #         form.second_choice.choices = [('LG AC310', 'LG AC310'), ('Samsung AC123', 'Samsung AC123')]
+  #     elif form.first_choice.data == 'Refrigerator':
+  #         form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
 
-    return render_template('devices.html', devices=devices, form=form)
+    return render_template('devices.html', devices=devices, form=form,location_id=location_id)
+
+@app.route('/location/<int:location_id>/delete_device/<int:device_id>', methods=['POST'])
+@login_required
+def delete_device(location_id,device_id):
+    conn = get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    
+    cur.execute('DELETE FROM Device WHERE DeviceID = %s', (device_id,))
+    conn.commit()
+
+    cur.close()
+    conn.close()
+
+    flash('Device deleted successfully')
+    return redirect(url_for('devices', location_id=location_id))
 
 class AnalysisForm(FlaskForm):
     first_choice = SelectField('Device Type', 
