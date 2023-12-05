@@ -11,8 +11,9 @@
     <ul class="list-group">
         {% for location in locations %}
             <li class="list-group-item">
-                {{ location.Building }} (Unit: {{ location.UnitNumber }})
-                <a href="{{ url_for('devices', location_id=location.ServiceLocationID) }}" class="btn btn-primary float-right">Details</a>
+                <a href="{{ url_for('devices', location_id=location.ServiceLocationID) }}">
+                    {{ location.Building }} (Unit: {{ location.UnitNumber }})
+                </a>
             </li>
         {% endfor %}
     </ul>
