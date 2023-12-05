@@ -1,4 +1,4 @@
-from flask import Flask, render_template, redirect, url_for, flash
+from flask import Flask, render_template, redirect, url_for, flash, request
 import pymysql
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
@@ -217,20 +217,45 @@ def devices(location_id):
     # Todo: Allow user to add new device by 
     #   1. first selecting from user prestored device type list
     #   2. choose the device model from the prestored model list
+    form = NewDeviceForm()
     devices = [{"DeviceID": 1,
                 "ServiceLocationID": 1,
                 "Type": "Refrigerator", 
                 "ModelName": "Samsung 1234"}]
-    return render_template('devices.html', devices=devices)
+    if request.method == 'POST':
+        device_type = form.first_choice.data
+        device_model = form.second_choice.data
+        
+        # recover the second choices after submission
+        if form.first_choice.data == 'AC System':
+            form.second_choice.choices = [('LG AC310', 'LG AC310'), ('Samsung AC123', 'Samsung AC123')]
+        elif form.first_choice.data == 'Refrigerator':
+            form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
 
+    return render_template('devices.html', devices=devices, form=form)
 
+class AnalysisForm(FlaskForm):
+    first_choice = SelectField('Device Type', 
+                               choices=[('daily energy use', 'daily energy use'),  # (value, label)
+                                        ('monthly energy use per device type', 'monthly energy use per device type')])
+    submit = SubmitField('Submit')
+    
 @app.route('/energy_consumption_analysis', methods=['GET', 'POST'])
 @login_required
 def energy_consumption_analysis():
     # Todo: provide several(4-5) analysis options(views) for user to choose
     # Todo: create visualization for each analysis option
-    return render_template('analysis.html')
-
+    form = AnalysisForm()
+    if form.validate_on_submit():
+        conn = get_db_connection()
+        if form.first_choice.data == 'daily energy use':
+            pass
+        elif form.first_choice.data == 'monthly energy use per device type':
+            pass
+        else:
+            pass
+            
+    return render_template('analysis.html', form=form)
 
 
 if __name__ == '__main__':
