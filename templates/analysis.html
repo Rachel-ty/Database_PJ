@@ -6,7 +6,9 @@
 {% endblock %}
 
 {% block page_content %}
-    <h1>Energy consumption analysis</h1>
+    <h1>Analysis</h1>
     {{ wtf.quick_form(form)}}
+    <h1>Pie Chart</h1>
+    <img src="data:image/png;base64,{{ image_base64 }}" alt="Pie Chart">
 {% endblock %}
 
