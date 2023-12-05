@@ -13,3 +13,7 @@ hty：完成location和device的增删查：
 syl: 完成三种分析报告的设计，并探索可视化呈现
 
 hty：再设计两种分析报告并完成可视化
+
+
+hty: 之后可以根据这个教程，数据库里存hash之后的密码
+https://www.ityouknow.com/python/2019/11/13/python-web-flask-login-057.html
