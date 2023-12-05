@@ -3,9 +3,9 @@ import pymysql
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, StringField, PasswordField, SubmitField
+from wtforms import StringField, SubmitField, StringField, PasswordField, SubmitField, IntegerField, DateField
 from wtforms.validators import DataRequired, Email, EqualTo
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 
 
 app = Flask(__name__)
@@ -78,6 +78,7 @@ class User(UserMixin):
         user_data=cur.fetchone()
         cur.close()
         conn.close()
+        print(user_data)
         if user_data:
             return User(id=user_data[0],email=user_data[4])
         return None
@@ -158,22 +159,55 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+class ServiceLocationForm(FlaskForm):
+    building=StringField('Building', validators=[DataRequired()])
+    unit_number=IntegerField('Unit Number', validators=[DataRequired()])
+    takeover_time=DateField('Takeover Time', validators=[DataRequired()])
+    square_footage=IntegerField('Square Footage',validators=[DataRequired()])
+    number_of_bedrooms= IntegerField('Number of Bedrooms', validators=[DataRequired()])
+    number_of_occupants= IntegerField('Number of Occupants', validators=[DataRequired()])
+    zcode=StringField('Zip Code',validators=[DataRequired()])
+    submit=SubmitField('Add Location')
+
 @app.route('/locations', methods=['GET', 'POST'])
 @login_required
 def locations():
     # Todo: Write query to get devices from database
     # Todo: Allow user to delete a device
     # Todo: Allow user to add a location by submitting a form
-    locations = [{"CustomerID": 1,
-                "ServiceLocationID": 1,
-                "Building": "123 Maple St Building", 
-                "UnitNumber": 5, 
-                "TakeOverTime": "2021-06-01",
-                "SquareFootage": 1200,
-                "NumberOfBedrooms": 2,
-                "NumberOfOccupants": 4,
-                "Zcode": '12345'}]
-    return render_template('locations.html', locations=locations)
+    form=ServiceLocationForm()
+    conn=get_db_connection()
+    cur=conn.cursor(pymysql.cursors.DictCursor)
+
+    if form.validate_on_submit():
+        data=(
+            current_user.id,
+            form.building.data,
+            form.unit_number.data,
+            form.takeover_time.data,
+            form.square_footage.data,
+            form.number_of_bedrooms.data,
+            form.number_of_occupants.data,
+            form.zcode.data
+        )
+        cur.execute('INSERT INTO ServiceLocation (CustomerID, Building, UnitNumber, TakeOverTime, SquareFootage, NumberOfBedrooms, NumberOfOccupants, Zcode) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)', data)
+        conn.commit()
+
+    cur.execute('Select * from ServiceLocation where CustomerID=%s',(current_user.id,))
+    locations=cur.fetchall()
+    cur.close()
+    conn.close()
+
+   # locations = [{"CustomerID": 1,
+   #             "ServiceLocationID": 1,
+   #             "Building": "123 Maple St Building", 
+   #             "UnitNumber": 5, 
+   #             "TakeOverTime": "2021-06-01",
+   #             "SquareFootage": 1200,
+   #             "NumberOfBedrooms": 2,
+   #             "NumberOfOccupants": 4,
+   #             "Zcode": '12345'}]
+    return render_template('locations.html', form=form, locations=locations)
 
 @app.route('/location/<int:location_id>', methods=['GET', 'POST'])
 @login_required
