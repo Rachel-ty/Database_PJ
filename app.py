@@ -71,7 +71,7 @@ class User(UserMixin):
     @staticmethod
     @login_manager.user_loader
     def get(user_id):
-        # Todo: Write query get user from database
+        # Todo: Write query get user from database (done)
         conn=get_db_connection()
         cur=conn.cursor()
         cur.execute('SELECT * FROM Customer Where CustomerId=%s',(user_id,))
@@ -228,38 +228,36 @@ def devices(location_id):
     form = NewDeviceForm()
     conn=get_db_connection()
     cur=conn.cursor(pymysql.cursors.DictCursor)
+    
+    cur.execute('Select * from Device where ServiceLocationID=%s',(location_id,))
+    devices=cur.fetchall()
+    print(devices)
+    
     if request.method == 'POST':
-
         device_type = form.first_choice.data
         device_model = form.second_choice.data
+        
+        cur.execute('INSERT INTO Device (ServiceLocationID, Type, ModelName) VALUES (%s, %s, %s)', 
+            (location_id, device_type, device_model))
+        conn.commit()
+        flash('New device added')
+        
+        # recover the second choices after submission. otherwise, the second choice will be empty
         if form.first_choice.data == 'AC System':
             form.second_choice.choices = [('LG AC310', 'LG AC310'), ('Samsung AC123', 'Samsung AC123')]
         elif form.first_choice.data == 'Refrigerator':
             form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
-    if form.validate_on_submit():
-        cur.execute('INSERT INTO Device (ServiceLocationID, Type, ModelNumber) VALUES (%s, %s, %s)', 
-                    (location_id, device_type, device_model))
-        conn.commit()
-        flash('New device added')
-        return redirect(url_for('devices', location_id=location_id))
-    cur.execute('Select * from Device where ServiceLocationID=%s',(location_id,))
-    devices=cur.fetchall()
-    cur.close()
-    conn.close()
+
+        return render_template('devices.html', devices=devices, form=form,location_id=location_id)
         
    # devices = [{"DeviceID": 1,
    #             "ServiceLocationID": 1,
    #             "Type": "Refrigerator", 
    #             "ModelName": "Samsung 1234"}]
-  # if request.method == 'POST':
-  #     device_type = form.first_choice.data
-  #     device_model = form.second_choice.data
-  #     
-  #     # recover the second choices after submission
-  #     if form.first_choice.data == 'AC System':
-  #         form.second_choice.choices = [('LG AC310', 'LG AC310'), ('Samsung AC123', 'Samsung AC123')]
-  #     elif form.first_choice.data == 'Refrigerator':
-  #         form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
+    cur.execute('Select * from Device where ServiceLocationID=%s',(location_id,))
+    devices=cur.fetchall()
+    cur.close()
+    conn.close()
 
     return render_template('devices.html', devices=devices, form=form,location_id=location_id)
 
