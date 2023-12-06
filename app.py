@@ -1,6 +1,5 @@
-import base64
-from io import BytesIO
-from flask import Flask, render_template, redirect, url_for, flash, request
+from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
+import requests
 import pymysql
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
@@ -8,10 +7,12 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, StringField, PasswordField, SubmitField, IntegerField, DateField, SelectField
 from wtforms.validators import DataRequired, Email, EqualTo
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
+import base64
+from io import BytesIO
+import pandas as pd
 
-# from get_choices import get_device_types
 
 
 app = Flask(__name__)
@@ -301,12 +302,100 @@ def delete_device(location_id,device_id):
     return redirect(url_for('devices', location_id=location_id))
 
 class AnalysisForm(FlaskForm):
-    first_choice = SelectField('Device Type', 
-                               choices=[('energy use', 'energy use'),  # (value, label)
-                                        ('energy charges', 'energy charges'),
-                                        ('piechart for energy use percentage per device type', 'piechart for energy use percentage per device type')])
-    second_choice = SelectField(choices=[])
+    # 初始化表单时，加载 customer_id 选项
+    def __init__(self, *args, **kwargs):
+        super(AnalysisForm, self).__init__(*args, **kwargs)
+        self.load_customer_ids()
+
+    def load_customer_ids(self):
+        conn = get_db_connection()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+        cur.execute('SELECT CustomerID FROM Customer')
+        customer_ids = cur.fetchall()
+        choices = [('all', 'All')] + [(str(cid['CustomerID']), str(cid['CustomerID'])) for cid in customer_ids]
+        self.customer_id.choices = choices
+        cur.close()
+        conn.close()
+
+    customer_id = SelectField('Customer ID', choices=[('all', 'All')])
+    ServiceLocationID = SelectField('Service Location', choices=[('all', 'All')])
+    device_type = SelectField('Device Type', choices=[('all', 'All')])
+    device_id = SelectField('Device ID', choices=[('all', 'All')])
+    Time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')])
     submit = SubmitField('Submit')
+    def update_choices(self, customer_id, service_location_id, device_type):
+        # 更新 ServiceLocationID 的选项
+        self.ServiceLocationID.choices = get_service_locations(customer_id)
+        # 更新 device_type 的选项
+        self.device_type.choices = get_device_types(customer_id, service_location_id)
+        # 更新 device_id 的选项
+        self.device_id.choices = get_device_ids(customer_id, service_location_id, device_type)
+
+@app.route('/get_service_locations/<customer_id>')
+@login_required
+def get_service_locations(customer_id):
+    conn = get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    if customer_id == 'all':
+        cur.execute('SELECT ServiceLocationID FROM ServiceLocation')
+    else:
+        cur.execute('SELECT ServiceLocationID FROM ServiceLocation WHERE CustomerID = %s', (customer_id,))
+    service_locations = [{'ServiceLocationID': 'all'}] + cur.fetchall()
+    cur.close()
+    conn.close()
+    print(service_locations)
+    return [(str(loc['ServiceLocationID']), str(loc['ServiceLocationID'])) for loc in service_locations]
+
+@app.route('/get_device_types/<customer_id>/<service_location_id>')
+@login_required
+def get_device_types(customer_id, service_location_id):
+    conn = get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    if service_location_id == 'all':
+        if customer_id == 'all':
+            cur.execute('SELECT DISTINCT Type FROM Device')
+        else:
+            cur.execute('SELECT DISTINCT Type FROM Device WHERE ServiceLocationID IN (SELECT ServiceLocationID FROM ServiceLocation WHERE CustomerID = %s)', (customer_id,))
+    else:
+        cur.execute('SELECT DISTINCT Type FROM Device WHERE ServiceLocationID = %s', (service_location_id,))
+    device_types = [{'Type': 'all'}] + cur.fetchall()
+    cur.close()
+    conn.close()
+    return [(str(type['Type']), str(type['Type'])) for type in device_types]
+
+@app.route('/get_device_ids/<customer_id>/<service_location_id>/<device_type>')
+@login_required
+def get_device_ids(customer_id, service_location_id, device_type):
+    conn = get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    query = 'SELECT DeviceID FROM Device WHERE'
+    conditions = []
+    params = []
+
+    if customer_id != 'all':
+        conditions.append('ServiceLocationID IN (SELECT ServiceLocationID FROM ServiceLocation WHERE CustomerID = %s)')
+        params.append(customer_id)
+
+    if service_location_id != 'all':
+        conditions.append('ServiceLocationID = %s')
+        params.append(service_location_id)
+
+    if device_type != 'all':
+        conditions.append('Type = %s')
+        params.append(device_type)
+
+    if not conditions:
+        conditions.append('1')  # Always true condition to fetch all
+    where_clause = ' AND '.join(conditions) if conditions else '1'
+    sql_query = f'''
+                    SELECT DeviceID FROM Device WHERE {where_clause}
+                '''
+    cur.execute(sql_query, tuple(params))
+    device_ids = [{'DeviceID': 'all'}] + cur.fetchall()
+    cur.close()
+    conn.close()
+    print(device_ids)
+    return [(str(device['DeviceID']), str(device['DeviceID'])) for device in device_ids]
 
 
 @app.route('/energy_consumption_analysis', methods=['GET', 'POST'])
@@ -315,47 +404,65 @@ def energy_consumption_analysis():
     # Todo: provide several(4-5) analysis options(views) for user to choose
     # Todo: create visualization for each analysis option
     form = AnalysisForm()
-    image_base64 = None
-    if request.method == 'POST':
-        conn = get_db_connection()
-        if form.first_choice.data == 'energy use':  # TODO: options: location, device type, device model, time granularity
-            pass
-        elif form.first_choice.data == 'energy charges':
-            pass
-        elif form.first_choice.data == 'piechart for energy use percentage per device type':  # options: location, time granularity: month
-            cur = conn.cursor(pymysql.cursors.DictCursor)
-            
-            # Todo: write query and get data
-            
+    analysis_data=None
+    image_base64=None
+    if request.method=='POST':
+        form.update_choices(form.customer_id.data, form.ServiceLocationID.data, form.device_type.data)
+        if form.validate_on_submit():
+            conn = get_db_connection()
+            cur=conn.cursor(pymysql.cursors.DictCursor)
+            plt.figure(figsize=(10, 6))
+            conditions = []
+            params = []
+            if form.customer_id.data != 'all':
+                conditions.append('ServiceLocation.CustomerID = %s')
+                params.append(form.customer_id.data)
+            if form.ServiceLocationID.data != 'all':
+                conditions.append('ServiceLocation.ServiceLocationID = %s')
+                params.append(form.ServiceLocationID.data)
+            if form.device_type.data != 'all':
+                conditions.append('Device.Type = %s')
+                params.append(form.device_type.data)
+            if form.device_id.data != 'all':
+                conditions.append('Device.DeviceID = %s')
+                params.append(form.device_id.data)
+
+            where_clause = ' AND '.join(conditions) if conditions else '1'
+
+            if form.Time_granularity.data=='daily':
+                sql_query = f'''
+                    SELECT DATE(Event.Timestamp) AS Date, SUM(Value) AS TotalEnergy
+                    FROM Event
+                    JOIN Device ON Event.DeviceID = Device.DeviceID
+                    JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+                    WHERE EventLabel = 'Energy Use' AND {where_clause}
+                    GROUP BY Date(Event.Timestamp)
+                '''
+                cur.execute(sql_query, tuple(params))
+                analysis_data = cur.fetchall()
+                df = pd.DataFrame(analysis_data)
+                sns.barplot(x="Date", y="TotalEnergy", data=df)
+            if form.Time_granularity.data=='monthly':
+                sql_query = f'''
+                    SELECT MONTH(Event.Timestamp) AS Month, SUM(Value) AS TotalEnergy
+                    FROM Event
+                    JOIN Device ON Event.DeviceID = Device.DeviceID
+                    JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+                    WHERE EventLabel = 'Energy Use' AND {where_clause}
+                    GROUP BY YEAR(Event.Timestamp), MONTH(Event.Timestamp)
+                '''
+                cur.execute(sql_query, tuple(params))
+                analysis_data = cur.fetchall()
+                df = pd.DataFrame(analysis_data)
+                sns.barplot(x="Month", y="TotalEnergy", data=df)
+            img = BytesIO()
+            plt.savefig(img, format='png')
+            img.seek(0)
+            image_base64 = base64.b64encode(img.getvalue()).decode()
             cur.close()
             conn.close()
             
-            labels = ['A', 'B', 'C', 'D']
-            sizes = [15, 30, 45, 10]
-
-            # draw a pie chart
-            plt.figure(figsize=(8, 8))
-            plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
-
-            # save chart to byte stream
-            buffer = BytesIO()
-            plt.savefig(buffer, format='png')
-            buffer.seek(0)
-            plt.close()
-
-            # transfer byte stream to base64 encoded string
-            image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-
-            # embed image in HTML template
-            return render_template('analysis.html', form=form, image_base64=image_base64)
-            
-        elif form.first_choice.data == '':
-            pass
-        else:
-            flash('Invalid choice')
-            
-    return render_template('analysis.html', form=form, image_base64=image_base64)
-
+    return render_template('analysis.html', form=form, analysis_data=analysis_data, image_base64=image_base64)
 
 
 if __name__ == '__main__':
