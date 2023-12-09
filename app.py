@@ -306,27 +306,16 @@ def analysis():
         # return redirect(url_for('energy_charges_analysis'))
         pass
     elif form.choice.data == 'Piechart for energy use percentage per device type':
-        # return redirect(url_for('piechart'))
-        pass
+        return redirect(url_for('piechart'))
     else:
         pass
     return render_template('analysis.html', form=form)
     
     
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+'''
+First View: Energy use analysis
+'''
 class EnergyUseForm(FlaskForm):
     # 初始化表单时，加载 customer_id 选项
     def __init__(self, *args, **kwargs):
@@ -423,7 +412,7 @@ def get_device_ids(customer_id, service_location_id, device_type):
     print(device_ids)
     return [(str(device['DeviceID']), str(device['DeviceID'])) for device in device_ids]
 
-@app.route('/energy_use_analysis', methods=['GET', 'POST'])
+@app.route('/analysis/energy_use_analysis', methods=['GET', 'POST'])
 @login_required
 def energy_use_analysis():
     # Todo: provide several(4-5) analysis options(views) for user to choose
@@ -488,6 +477,78 @@ def energy_use_analysis():
             conn.close()
             
     return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64)
+
+'''
+First view ends
+'''
+
+
+'''
+Second view: Energy charges analysis
+'''
+
+
+
+'''
+Second view ends
+'''
+
+
+'''
+Third view: Piechart for energy use percentage per device type
+'''
+
+class PiechartForm(FlaskForm):
+    serviceLocationID = SelectField('Service Location', choices=[('all', 'All')], validators=[DataRequired()])
+    time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')], validators=[DataRequired()])
+    date = DateField('Date', format='%Y-%m-%d', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+
+@app.route('/analysis/piechart', methods=['GET', 'POST'])
+@login_required
+def piechart():
+    form = PiechartForm()
+    image_base64 = None
+    if request.method=='POST':
+        conn = get_db_connection()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+        month = str(form.date.data.month)
+
+        if form.time_granularity.data == 'daily':
+            pass
+        elif form.time_granularity.data == 'monthly':
+            cur.execute('SELECT Type, SUM(Value) AS TotalEnergyUse FROM (Event JOIN Device ON Event.DeviceID = Device.DeviceID) JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID WHERE EventLabel = "Energy Use" AND CustomerID=1 AND MONTH(TimeStamp) = %s GROUP BY Type', month)
+            # Note that service location is not here
+        analysis_data = cur.fetchall()
+        print(analysis_data)
+        
+        
+        cur.close()
+        conn.close()
+            
+        labels = [data['Type'] for data in analysis_data]
+        sizes = [data['TotalEnergyUse'] for data in analysis_data]
+
+        # draw a pie chart
+        plt.figure(figsize=(8, 8))
+        plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+
+        # save chart to byte stream
+        buffer = BytesIO()
+        plt.savefig(buffer, format='png')
+        buffer.seek(0)
+        plt.close()
+
+        # transfer byte stream to base64 encoded string
+        image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+
+    return render_template('piechart.html', form=form, image_base64=image_base64)
+
+'''
+Third view ends
+'''
+
 
 
 if __name__ == '__main__':
