@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block title %}
+    Energy consumption analysis
+{% endblock %}
+
+{% block page_content %}
+    <h1>Energy Consumption Analysis</h1>
+    
+    <h3>Select Criteria for Energy Consumption Analysis</h3>
+        {{ wtf.quick_form(form) }}
+        {% if image_base64 %}
+            <h2>Analysis Chart</h2>
+            <img src="data:image/png;base64,{{ image_base64 }}" alt="Analysis Chart">
+        {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('customer_id').addEventListener('change', function() {
+        updateServiceLocations(this.value);
+        updateDeviceTypes(this.value, 'all');
+        updateDeviceIds(this.value, 'all', 'all');
+    });
+    document.getElementById('ServiceLocationID').addEventListener('change', function() {
+        let customerId = document.getElementById('customer_id').value;
+        updateDeviceTypes(customerId, this.value);
+        updateDeviceIds(customerId, this.value, document.getElementById('device_type').value);
+    });
+    document.getElementById('device_type').addEventListener('change', function() {
+        let customerId = document.getElementById('customer_id').value;
+        let serviceLocationId = document.getElementById('ServiceLocationID').value;
+        updateDeviceIds(customerId, serviceLocationId, this.value);
+    });
+
+    function updateServiceLocations(customerId) {
+    fetch(`/get_service_locations/${customerId}`)
+        .then(response => response.json())
+        .then(data => {
+            let serviceLocationSelect = document.getElementById('ServiceLocationID');
+            serviceLocationSelect.innerHTML = '';  
+
+
+            data.forEach(loc => {
+                if (loc.ServiceLocationID !== 'all') {  // 确保不重复添加 "all"
+                    let option = new Option(loc[1], loc[0]);
+                    serviceLocationSelect.add(option);
+                }
+            });
+        });
+}
+
+    function updateDeviceTypes(customerId, serviceLocationId) {
+        fetch(`/get_device_types/${customerId}/${serviceLocationId}`)
+            .then(response => response.json())
+            .then(data => {
+                let deviceTypeSelect = document.getElementById('device_type');
+                deviceTypeSelect.innerHTML = '';
+                data.forEach(type => {
+                    let option = new Option(type[1], type[0]);
+                    deviceTypeSelect.add(option);
+                });
+            });
+    }
+
+    function updateDeviceIds(customerId, serviceLocationId, deviceType) {
+        fetch(`/get_device_ids/${customerId}/${serviceLocationId}/${deviceType}`)
+            .then(response => response.json())
+            .then(data => {
+                let deviceSelect = document.getElementById('device_id');
+                deviceSelect.innerHTML = '';
+                data.forEach(device => {
+                    let option = new Option(device[1], device[0]);
+                    deviceSelect.add(option);
+                });
+            });
+    }
+</script>
+
+{% endblock %}

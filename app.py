@@ -8,10 +8,12 @@ from wtforms import StringField, SubmitField, StringField, PasswordField, Submit
 from wtforms.validators import DataRequired, Email, EqualTo
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 import seaborn as sns
-import matplotlib.pyplot as plt
 import base64
 from io import BytesIO
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 
@@ -269,20 +271,6 @@ def devices(location_id):
     devices=cur.fetchall()
     cur.close()
     conn.close()
-        
-   # devices = [{"DeviceID": 1,
-   #             "ServiceLocationID": 1,
-   #             "Type": "Refrigerator", 
-   #             "ModelName": "Samsung 1234"}]
-  # if request.method == 'POST':
-  #     device_type = form.first_choice.data
-  #     device_model = form.second_choice.data
-  #     
-  #     # recover the second choices after submission
-  #     if form.first_choice.data == 'AC System':
-  #         form.second_choice.choices = [('LG AC310', 'LG AC310'), ('Samsung AC123', 'Samsung AC123')]
-  #     elif form.first_choice.data == 'Refrigerator':
-  #         form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
 
     return render_template('devices.html', devices=devices, form=form,location_id=location_id)
 
@@ -301,10 +289,48 @@ def delete_device(location_id,device_id):
     flash('Device deleted successfully')
     return redirect(url_for('devices', location_id=location_id))
 
+
 class AnalysisForm(FlaskForm):
+    choice = SelectField('Analysis Choice', 
+                               choices=[('Energy use', 'Energy use'),  # (value, label)
+                                        ('Energy charges', 'Energy charges'),
+                                        ('Piechart for energy use percentage per device type', 'Piechart for energy use percentage per device type')])
+    submit = SubmitField('Submit')
+@app.route('/analysis', methods=['GET', 'POST'])
+@login_required
+def analysis():
+    form = AnalysisForm()
+    if form.choice.data == 'Energy use':
+        return redirect(url_for('energy_use_analysis'))
+    elif form.choice.data == 'Energy charges':
+        # return redirect(url_for('energy_charges_analysis'))
+        pass
+    elif form.choice.data == 'Piechart for energy use percentage per device type':
+        # return redirect(url_for('piechart'))
+        pass
+    else:
+        pass
+    return render_template('analysis.html', form=form)
+    
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class EnergyUseForm(FlaskForm):
     # 初始化表单时，加载 customer_id 选项
     def __init__(self, *args, **kwargs):
-        super(AnalysisForm, self).__init__(*args, **kwargs)
+        super(EnergyUseForm, self).__init__(*args, **kwargs)
         self.load_customer_ids()
 
     def load_customer_ids(self):
@@ -397,13 +423,12 @@ def get_device_ids(customer_id, service_location_id, device_type):
     print(device_ids)
     return [(str(device['DeviceID']), str(device['DeviceID'])) for device in device_ids]
 
-
-@app.route('/energy_consumption_analysis', methods=['GET', 'POST'])
+@app.route('/energy_use_analysis', methods=['GET', 'POST'])
 @login_required
-def energy_consumption_analysis():
+def energy_use_analysis():
     # Todo: provide several(4-5) analysis options(views) for user to choose
     # Todo: create visualization for each analysis option
-    form = AnalysisForm()
+    form = EnergyUseForm()
     analysis_data=None
     image_base64=None
     if request.method=='POST':
@@ -462,7 +487,7 @@ def energy_consumption_analysis():
             cur.close()
             conn.close()
             
-    return render_template('analysis.html', form=form, analysis_data=analysis_data, image_base64=image_base64)
+    return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64)
 
 
 if __name__ == '__main__':
