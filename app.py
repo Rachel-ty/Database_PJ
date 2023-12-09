@@ -303,8 +303,7 @@ def analysis():
     if form.choice.data == 'Energy use':
         return redirect(url_for('energy_use_analysis'))
     elif form.choice.data == 'Energy charges':
-        # return redirect(url_for('energy_charges_analysis'))
-        pass
+        return redirect(url_for('energy_charges_analysis'))
     elif form.choice.data == 'Piechart for energy use percentage per device type':
         return redirect(url_for('piechart'))
     else:
@@ -486,7 +485,103 @@ First view ends
 '''
 Second view: Energy charges analysis
 '''
+class EnergyChargesForm(FlaskForm):
+    # 初始化表单时，加载 customer_id 选项
+    def __init__(self, *args, **kwargs):
+        super(EnergyChargesForm, self).__init__(*args, **kwargs)
+        self.load_customer_ids()
 
+    def load_customer_ids(self):
+        conn = get_db_connection()
+        cur = conn.cursor(pymysql.cursors.DictCursor)
+        cur.execute('SELECT CustomerID FROM Customer')
+        customer_ids = cur.fetchall()
+        choices = [('all', 'All')] + [(str(cid['CustomerID']), str(cid['CustomerID'])) for cid in customer_ids]
+        self.customer_id.choices = choices
+        cur.close()
+        conn.close()
+
+    customer_id = SelectField('Customer ID', choices=[('all', 'All')])
+    ServiceLocationID = SelectField('Service Location', choices=[('all', 'All')])
+    device_type = SelectField('Device Type', choices=[('all', 'All')])
+    device_id = SelectField('Device ID', choices=[('all', 'All')])
+    Time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')])
+    submit = SubmitField('Submit')
+    def update_choices(self, customer_id, service_location_id, device_type):
+        # 更新 ServiceLocationID 的选项
+        self.ServiceLocationID.choices = get_service_locations(customer_id)
+        # 更新 device_type 的选项
+        self.device_type.choices = get_device_types(customer_id, service_location_id)
+        # 更新 device_id 的选项
+        self.device_id.choices = get_device_ids(customer_id, service_location_id, device_type)
+
+@app.route('/analysis/energy_charges_analysis', methods=['GET', 'POST'])
+@login_required
+def energy_charges_analysis():
+    # Todo: provide several(4-5) analysis options(views) for user to choose
+    # Todo: create visualization for each analysis option
+    form = EnergyChargesForm()
+    analysis_data=None
+    image_base64=None
+    if request.method=='POST':
+        form.update_choices(form.customer_id.data, form.ServiceLocationID.data, form.device_type.data)
+        if form.validate_on_submit():
+            conn = get_db_connection()
+            cur=conn.cursor(pymysql.cursors.DictCursor)
+            plt.figure(figsize=(10, 6))
+            conditions = []
+            params = []
+            if form.customer_id.data != 'all':
+                conditions.append('ServiceLocation.CustomerID = %s')
+                params.append(form.customer_id.data)
+            if form.ServiceLocationID.data != 'all':
+                conditions.append('ServiceLocation.ServiceLocationID = %s')
+                params.append(form.ServiceLocationID.data)
+            if form.device_type.data != 'all':
+                conditions.append('Device.Type = %s')
+                params.append(form.device_type.data)
+            if form.device_id.data != 'all':
+                conditions.append('Device.DeviceID = %s')
+                params.append(form.device_id.data)
+
+            where_clause = ' AND '.join(conditions) if conditions else '1'
+
+            if form.Time_granularity.data=='daily':
+                sql_query = f'''
+                    SELECT DATE(Event.Timestamp) AS Date, SUM(Value*Price) AS TotalCharge
+                    FROM Event
+                    JOIN Device ON Event.DeviceID = Device.DeviceID
+                    JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID 
+                    JOIN EnergyPrice ON ServiceLocation.Zcode=EnergyPrice.Zcode and EXTRACT(HOUR FROM Event.Timestamp) = EXTRACT(HOUR FROM EnergyPrice.Timestamp) and EXTRACT(DAY FROM Event.Timestamp) = EXTRACT(DAY FROM EnergyPrice.Timestamp) and EXTRACT(MONTH FROM Event.Timestamp) = EXTRACT(MONTH FROM EnergyPrice.Timestamp) and EXTRACT(YEAR FROM Event.Timestamp) = EXTRACT(YEAR FROM EnergyPrice.Timestamp)
+                    WHERE EventLabel = 'Energy Use' AND {where_clause}
+                    GROUP BY Date(Event.Timestamp)
+                '''
+                cur.execute(sql_query, tuple(params))
+                analysis_data = cur.fetchall()
+                df = pd.DataFrame(analysis_data)
+                sns.barplot(x="Date", y="TotalCharge", data=df)
+            if form.Time_granularity.data=='monthly':
+                sql_query = f'''
+                    SELECT MONTH(Event.Timestamp) AS Month, SUM(Value*Price) AS TotalCharge
+                    FROM Event
+                    JOIN Device ON Event.DeviceID = Device.DeviceID
+                    JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+                    JOIN EnergyPrice ON ServiceLocation.Zcode=EnergyPrice.Zcode and EXTRACT(HOUR FROM Event.Timestamp) = EXTRACT(HOUR FROM EnergyPrice.Timestamp) and EXTRACT(DAY FROM Event.Timestamp) = EXTRACT(DAY FROM EnergyPrice.Timestamp) and EXTRACT(MONTH FROM Event.Timestamp) = EXTRACT(MONTH FROM EnergyPrice.Timestamp) and EXTRACT(YEAR FROM Event.Timestamp) = EXTRACT(YEAR FROM EnergyPrice.Timestamp)
+                    WHERE EventLabel = 'Energy Use' AND {where_clause}
+                    GROUP BY YEAR(Event.Timestamp), MONTH(Event.Timestamp)
+                '''
+                cur.execute(sql_query, tuple(params))
+                analysis_data = cur.fetchall()
+                df = pd.DataFrame(analysis_data)
+                sns.barplot(x="Month", y="TotalCharge", data=df)
+            img = BytesIO()
+            plt.savefig(img, format='png')
+            img.seek(0)
+            image_base64 = base64.b64encode(img.getvalue()).decode()
+            cur.close()
+            conn.close()
+            
+    return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64)
 
 
 '''
