@@ -14,6 +14,7 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from flask_bcrypt import Bcrypt
 
 
 
@@ -33,7 +34,7 @@ db_config = {
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
-
+bcrypt = Bcrypt(app)
 
 def get_db_connection():
     connection = pymysql.connect(**db_config)
@@ -87,7 +88,6 @@ class User(UserMixin):
         user_data=cur.fetchone()
         cur.close()
         conn.close()
-        print(user_data)
         if user_data:
             return User(id=user_data[0],email=user_data[4])
         return None
@@ -107,6 +107,7 @@ def signup():
     form = RegistrationForm()
     if form.validate_on_submit():
         # Todo: Write query to insert user into database; add logic checking
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         conn = get_db_connection()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
         insert_query = """
@@ -116,7 +117,7 @@ def signup():
         data = (
             form.username.data, 
             form.email.data, 
-            form.password.data, 
+            hashed_password, 
             form.billing_address.data
         )
         try:
@@ -153,7 +154,7 @@ def login():
         print(user)
         cur.close()
         conn.close()
-        if user and user['Password']==password:
+        if user and bcrypt.check_password_hash(user['Password'], password):
             user=User(id=user['CustomerID'],email=user['Email'])
             login_user(user)
             return redirect(url_for('index'))
@@ -357,7 +358,6 @@ def get_service_locations(customer_id):
     service_locations = [{'ServiceLocationID': 'all'}] + cur.fetchall()
     cur.close()
     conn.close()
-    print(service_locations)
     return [(str(loc['ServiceLocationID']), str(loc['ServiceLocationID'])) for loc in service_locations]
 
 @app.route('/get_device_types/<customer_id>/<service_location_id>')
@@ -372,9 +372,11 @@ def get_device_types(customer_id, service_location_id):
             cur.execute('SELECT DISTINCT Type FROM Device WHERE ServiceLocationID IN (SELECT ServiceLocationID FROM ServiceLocation WHERE CustomerID = %s)', (customer_id,))
     else:
         cur.execute('SELECT DISTINCT Type FROM Device WHERE ServiceLocationID = %s', (service_location_id,))
-    device_types = [{'Type': 'all'}] + cur.fetchall()
+    
+    device_types = list(cur.fetchall()) 
     cur.close()
     conn.close()
+    device_types.insert(0,{'Type': 'all'})
     return [(str(type['Type']), str(type['Type'])) for type in device_types]
 
 @app.route('/get_device_ids/<customer_id>/<service_location_id>/<device_type>')
@@ -405,10 +407,9 @@ def get_device_ids(customer_id, service_location_id, device_type):
                     SELECT DeviceID FROM Device WHERE {where_clause}
                 '''
     cur.execute(sql_query, tuple(params))
-    device_ids = [{'DeviceID': 'all'}] + cur.fetchall()
+    device_ids = [{'DeviceID': 'all'}] + list(cur.fetchall())
     cur.close()
     conn.close()
-    print(device_ids)
     return [(str(device['DeviceID']), str(device['DeviceID'])) for device in device_ids]
 
 @app.route('/analysis/energy_use_analysis', methods=['GET', 'POST'])
@@ -419,6 +420,7 @@ def energy_use_analysis():
     form = EnergyUseForm()
     analysis_data=None
     image_base64=None
+    message=""
     if request.method=='POST':
         form.update_choices(form.customer_id.data, form.ServiceLocationID.data, form.device_type.data)
         if form.validate_on_submit():
@@ -453,6 +455,9 @@ def energy_use_analysis():
                 '''
                 cur.execute(sql_query, tuple(params))
                 analysis_data = cur.fetchall()
+                if not analysis_data:
+                    message="No data returned from the query"
+                    return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
                 sns.barplot(x="Date", y="TotalEnergy", data=df)
             if form.Time_granularity.data=='monthly':
@@ -466,6 +471,9 @@ def energy_use_analysis():
                 '''
                 cur.execute(sql_query, tuple(params))
                 analysis_data = cur.fetchall()
+                if not analysis_data:
+                    message="No data returned from the query"
+                    return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
                 sns.barplot(x="Month", y="TotalEnergy", data=df)
             img = BytesIO()
@@ -475,7 +483,7 @@ def energy_use_analysis():
             cur.close()
             conn.close()
             
-    return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64)
+    return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
 
 '''
 First view ends
@@ -523,6 +531,7 @@ def energy_charges_analysis():
     form = EnergyChargesForm()
     analysis_data=None
     image_base64=None
+    message=""
     if request.method=='POST':
         form.update_choices(form.customer_id.data, form.ServiceLocationID.data, form.device_type.data)
         if form.validate_on_submit():
@@ -558,6 +567,9 @@ def energy_charges_analysis():
                 '''
                 cur.execute(sql_query, tuple(params))
                 analysis_data = cur.fetchall()
+                if not analysis_data:
+                    message="No data returned from the query"
+                    return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
                 sns.barplot(x="Date", y="TotalCharge", data=df)
             if form.Time_granularity.data=='monthly':
@@ -572,6 +584,9 @@ def energy_charges_analysis():
                 '''
                 cur.execute(sql_query, tuple(params))
                 analysis_data = cur.fetchall()
+                if not analysis_data:
+                    message="No data returned from the query"
+                    return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
                 sns.barplot(x="Month", y="TotalCharge", data=df)
             img = BytesIO()
@@ -581,7 +596,7 @@ def energy_charges_analysis():
             cur.close()
             conn.close()
             
-    return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64)
+    return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
 
 
 '''
@@ -616,7 +631,7 @@ def piechart():
             cur.execute('SELECT Type, SUM(Value) AS TotalEnergyUse FROM (Event JOIN Device ON Event.DeviceID = Device.DeviceID) JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID WHERE EventLabel = "Energy Use" AND CustomerID=1 AND MONTH(TimeStamp) = %s GROUP BY Type', month)
             # Note that service location is not here
         analysis_data = cur.fetchall()
-        print(analysis_data)
+        #print(analysis_data)
         
         
         cur.close()
