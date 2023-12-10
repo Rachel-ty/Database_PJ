@@ -1,9 +1,9 @@
 -- Customer
-INSERT INTO Customer (UserName, BillingAddress, Password, Email) VALUES
-('John Doe', '123 Maple St, Springfield', 'password123', 'johndoe@example.com'),
-('Jane Smith', '456 Oak Ave, Centerville', 'password456', 'janesmith@example.com'),
-('Alex Johnson', '789 Pine Rd, Lakeview', 'password789', 'alexjohnson@example.com'),
-('Maria Garcia', '101 Birch Ln, Mountainville', 'password101', 'mariagarcia@example.com');
+--INSERT INTO Customer (UserName, BillingAddress, Password, Email) VALUES
+--('John Doe', '123 Maple St, Springfield', 'password123', 'johndoe@example.com'),
+--('Jane Smith', '456 Oak Ave, Centerville', 'password456', 'janesmith@example.com'),
+--('Alex Johnson', '789 Pine Rd, Lakeview', 'password789', 'alexjohnson@example.com'),
+--('Maria Garcia', '101 Birch Ln, Mountainville', 'password101', 'mariagarcia@example.com');
 
 
 
@@ -139,5 +139,4 @@ INSERT INTO EnergyPrice (Zcode, Timestamp, Price) VALUES
 ('67890', '2023-08-02 08:00:00', 0.19),
 ('67890', '2023-08-05 18:00:00', 0.18),
 ('67890', '2023-08-10 15:00:00', 0.17),
-('67890', '2023-08-15 21:00:00', 0.16),
-('67890', '2023-08-20 10:00:00', 0.15);
+('67890', '2023-08-15 21:00:00', 0.16);

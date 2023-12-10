@@ -1,0 +1,20 @@
+<!-- tips.html -->
+{% extends "base.html" %}
+{% block content %}
+<h2>Electricity Usage Tips</h2>
+
+<form method="post">
+    {{ form.hidden_tag() }}
+    <div class="form-group">
+        <label for="deviceType">Select Device Type:</label>
+        {{ form.device_type(class="form-control") }}
+    </div>
+    <button type="submit" class="btn btn-primary">Get Tips</button>
+</form>
+
+{% if message %}
+    <div class="alert alert-info" role="alert">
+        {{ message }}
+    </div>
+{% endif %}
+{% endblock %}
