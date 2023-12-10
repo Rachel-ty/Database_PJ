@@ -13,5 +13,32 @@
         {% if image_base64 %}
             <h2>Analysis Chart</h2>
             <img src="data:image/png;base64,{{ image_base64 }}" alt="Analysis Chart">
+        {% else %}
+            <style> p {margin-top: 20px;} </style>
+            <p>{{no_data_msg}}</p>
         {% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('service_location_id').addEventListener('change', function() {
+        let customerId = {{customer_id}};
+        console.log(customerId)
+        updateDeviceTypes(customerId, this.value);
+    });
+        
+    function updateDeviceTypes(customerId, serviceLocationId) {
+        fetch(`/get_device_types/${customerId}/${serviceLocationId}`)
+            .then(response => response.json())
+            .then(data => {
+                let deviceTypeSelect = document.getElementById('device_type');
+                deviceTypeSelect.innerHTML = '';
+                data.forEach(type => {
+                    let option = new Option(type[1], type[0]);
+                    deviceTypeSelect.add(option);
+                });
+            });
+    }
+</script>
 {% endblock %}
