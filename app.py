@@ -65,7 +65,6 @@ def query():
         
         cursor.close()
         conn.close()
-        # return redirect(url_for('index'))  # how to redirect
     return render_template('query.html', form=query_form, record=record)
 
 
@@ -81,7 +80,6 @@ class User(UserMixin):
     @staticmethod
     @login_manager.user_loader
     def get(user_id):
-        # Todo: Write query get user from database
         conn=get_db_connection()
         cur=conn.cursor()
         cur.execute('SELECT * FROM Customer Where CustomerId=%s',(user_id,))
@@ -106,7 +104,6 @@ class RegistrationForm(FlaskForm):
 def signup():
     form = RegistrationForm()
     if form.validate_on_submit():
-        # Todo: Write query to insert user into database; add logic checking
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         conn = get_db_connection()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -182,9 +179,6 @@ class ServiceLocationForm(FlaskForm):
 @app.route('/locations', methods=['GET', 'POST'])
 @login_required
 def locations():
-    # Todo: Write query to get devices from database (done)
-    # Todo: Allow user to delete a device (done)
-    # Todo: Allow user to add a location by submitting a form (done)
     form=ServiceLocationForm()
     conn=get_db_connection()
     cur=conn.cursor(pymysql.cursors.DictCursor)
@@ -207,16 +201,6 @@ def locations():
     locations=cur.fetchall()
     cur.close()
     conn.close()
-
-   # locations = [{"CustomerID": 1,
-   #             "ServiceLocationID": 1,
-   #             "Building": "123 Maple St Building", 
-   #             "UnitNumber": 5, 
-   #             "TakeOverTime": "2021-06-01",
-   #             "SquareFootage": 1200,
-   #             "NumberOfBedrooms": 2,
-   #             "NumberOfOccupants": 4,
-   #             "Zcode": '12345'}]
     return render_template('locations.html', form=form, locations=locations)
 
 @app.route('/delete_location/<int:location_id>', methods=['POST'])
@@ -246,11 +230,6 @@ class NewDeviceForm(FlaskForm):
 @app.route('/location/<int:location_id>', methods=['GET', 'POST'])
 @login_required
 def devices(location_id):
-    # Todo: Write query to get all devices from database and show them (done)
-    # Todo: Allow user to delete a device (done)
-    # Todo: Allow user to add new device by  (DONE)
-    #   1. first selecting from user prestored device type list
-    #   2. choose the device model from the prestored model list
     form = NewDeviceForm()
     conn=get_db_connection()
     cur=conn.cursor(pymysql.cursors.DictCursor)
@@ -320,7 +299,6 @@ def analysis():
 First View: Energy use analysis
 '''
 class EnergyUseForm(FlaskForm):
-    # 初始化表单时，加载 customer_id 选项
     def __init__(self, *args, **kwargs):
         super(EnergyUseForm, self).__init__(*args, **kwargs)
         self.load_customer_ids()
@@ -342,11 +320,8 @@ class EnergyUseForm(FlaskForm):
     Time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')])
     submit = SubmitField('Submit')
     def update_choices(self, customer_id, service_location_id, device_type):
-        # 更新 ServiceLocationID 的选项
         self.ServiceLocationID.choices = get_service_locations(customer_id)
-        # 更新 device_type 的选项
         self.device_type.choices = get_device_types(customer_id, service_location_id)
-        # 更新 device_id 的选项
         self.device_id.choices = get_device_ids(customer_id, service_location_id, device_type)
 
 @app.route('/get_service_locations/<customer_id>')
@@ -418,8 +393,6 @@ def get_device_ids(customer_id, service_location_id, device_type):
 @app.route('/analysis/energy_use_analysis', methods=['GET', 'POST'])
 @login_required
 def energy_use_analysis():
-    # Todo: provide several(4-5) analysis options(views) for user to choose
-    # Todo: create visualization for each analysis option
     form = EnergyUseForm()
     analysis_data=None
     image_base64=None
@@ -497,7 +470,6 @@ First view ends
 Second view: Energy charges analysis
 '''
 class EnergyChargesForm(FlaskForm):
-    # 初始化表单时，加载 customer_id 选项
     def __init__(self, *args, **kwargs):
         super(EnergyChargesForm, self).__init__(*args, **kwargs)
         self.load_customer_ids()
@@ -519,18 +491,13 @@ class EnergyChargesForm(FlaskForm):
     Time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')])
     submit = SubmitField('Submit')
     def update_choices(self, customer_id, service_location_id, device_type):
-        # 更新 ServiceLocationID 的选项
         self.ServiceLocationID.choices = get_service_locations(customer_id)
-        # 更新 device_type 的选项
         self.device_type.choices = get_device_types(customer_id, service_location_id)
-        # 更新 device_id 的选项
         self.device_id.choices = get_device_ids(customer_id, service_location_id, device_type)
 
 @app.route('/analysis/energy_charges_analysis', methods=['GET', 'POST'])
 @login_required
 def energy_charges_analysis():
-    # Todo: provide several(4-5) analysis options(views) for user to choose
-    # Todo: create visualization for each analysis option
     form = EnergyChargesForm()
     analysis_data=None
     image_base64=None
@@ -760,7 +727,7 @@ def calculate_dryer_usage_and_savings(customerID):
     if result and result['total_usage']:
         total_usage = result['total_usage']
         # Assuming the cost difference per hour between peak and non-peak hours
-        cost_difference_per_hour = Decimal('28.7')  # Example value
+        cost_difference_per_hour = Decimal('0.287')  # Example value
         potential_savings = total_usage * cost_difference_per_hour
         return f"Total dryer usage during peak hours: {total_usage} hours. Potential savings: ${potential_savings} by using in non-peak hours."
     else:
