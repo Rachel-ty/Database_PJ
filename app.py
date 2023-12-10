@@ -87,7 +87,6 @@ class User(UserMixin):
         user_data=cur.fetchone()
         cur.close()
         conn.close()
-        print(user_data)
         if user_data:
             return User(id=user_data[0],email=user_data[4])
         return None
@@ -357,7 +356,6 @@ def get_service_locations(customer_id):
     service_locations = [{'ServiceLocationID': 'all'}] + cur.fetchall()
     cur.close()
     conn.close()
-    print(service_locations)
     return [(str(loc['ServiceLocationID']), str(loc['ServiceLocationID'])) for loc in service_locations]
 
 @app.route('/get_device_types/<customer_id>/<service_location_id>')
@@ -594,10 +592,19 @@ Third view: Piechart for energy use percentage per device type
 '''
 
 class PiechartForm(FlaskForm):
-    serviceLocationID = SelectField('Service Location', choices=[('all', 'All')], validators=[DataRequired()])
-    time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')], validators=[DataRequired()])
+    service_location_id = SelectField('Service Location', choices=[('all', 'All')], validators=[DataRequired()])
+    time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly'), ('yearly', 'Yearly')], validators=[DataRequired()])
+    device_type = SelectField('Device Type', choices=[('all', 'All')])
     date = DateField('Date', format='%Y-%m-%d', validators=[DataRequired()])
     submit = SubmitField('Submit')
+
+    def __init__(self, *args, **kwargs):
+        super(PiechartForm, self).__init__(*args, **kwargs)
+        self.service_location_id.choices = get_service_locations(current_user.id)
+        
+    def update_choices(self, service_location_id):
+        # update the choice of the device_type
+        self.device_type.choices = get_device_types(current_user.id, service_location_id)
 
 
 @app.route('/analysis/piechart', methods=['GET', 'POST'])
@@ -605,40 +612,84 @@ class PiechartForm(FlaskForm):
 def piechart():
     form = PiechartForm()
     image_base64 = None
+    no_data_msg = ""
     if request.method=='POST':
-        conn = get_db_connection()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
-        month = str(form.date.data.month)
-
-        if form.time_granularity.data == 'daily':
-            pass
-        elif form.time_granularity.data == 'monthly':
-            cur.execute('SELECT Type, SUM(Value) AS TotalEnergyUse FROM (Event JOIN Device ON Event.DeviceID = Device.DeviceID) JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID WHERE EventLabel = "Energy Use" AND CustomerID=1 AND MONTH(TimeStamp) = %s GROUP BY Type', month)
-            # Note that service location is not here
-        analysis_data = cur.fetchall()
-        print(analysis_data)
-        
-        
-        cur.close()
-        conn.close()
+        form.update_choices(form.service_location_id.data)
+        if form.validate_on_submit():
+            conn = get_db_connection()
+            cur = conn.cursor(pymysql.cursors.DictCursor)
+            year = str(form.date.data.year)
+            month = str(form.date.data.month)
+            day = str(form.date.data.day)
+            query = '''SELECT Type, SUM(Value) AS TotalEnergyUse 
+                        FROM (Event JOIN Device ON Event.DeviceID = Device.DeviceID) 
+                        JOIN ServiceLocation 
+                        ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID 
+                        WHERE EventLabel = "Energy Use" AND CustomerID = %s'''
+            if form.device_type.data != 'all':
+                query += ''' AND Type = %s'''
             
-        labels = [data['Type'] for data in analysis_data]
-        sizes = [data['TotalEnergyUse'] for data in analysis_data]
+            if form.time_granularity.data == 'daily':
+                query += ''' AND YEAR(TimeStamp) = %s 
+                        AND MONTH(TimeStamp) = %s
+                        AND DAY(TimeStamp) = %s'''
+                if form.device_type.data == 'all':
+                    query += " GROUP BY Type"
+                    cur.execute(query, (str(current_user.id), year, month, day))
+                else:
+                    query += " GROUP BY ModelName"
+                    query = query.replace('SELECT Type', 'SELECT ModelName')
+                    cur.execute(query, (str(current_user.id), str(form.device_type.data), year, month, day)) 
+            elif form.time_granularity.data == 'monthly':
+                query += ''' AND YEAR(TimeStamp) = %s 
+                        AND MONTH(TimeStamp) = %s'''
+                if form.device_type.data == 'all':
+                    query += " GROUP BY Type"
+                    cur.execute(query, (str(current_user.id), year, month))
+                else:
+                    query += " GROUP BY ModelName"
+                    query = query.replace('SELECT Type', 'SELECT ModelName')
+                    cur.execute(query, (str(current_user.id), str(form.device_type.data), year, month))
+            elif form.time_granularity.data == 'yearly':
+                query += ''' AND YEAR(TimeStamp) = %s '''
+                if form.device_type.data == 'all':
+                    query += " GROUP BY Type"
+                    cur.execute(query, (str(current_user.id), year))
+                else:
+                    query += " GROUP BY ModelName"
+                    query = query.replace('SELECT Type', 'SELECT ModelName')
+                    cur.execute(query, (str(current_user.id), str(form.device_type.data), year))
+            else:
+                flash("wrong type!")
+            analysis_data = cur.fetchall()
+            print(analysis_data)
+            
+            cur.close()
+            conn.close()
+            
+            if not analysis_data:
+                no_data_msg = "No record found!"
+            else:
+                if form.device_type.data != 'all':
+                    labels = [data['ModelName'] for data in analysis_data]
+                else:
+                    labels = [data['Type'] for data in analysis_data]
+                sizes = [data['TotalEnergyUse'] for data in analysis_data]
 
-        # draw a pie chart
-        plt.figure(figsize=(8, 8))
-        plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
+                # draw a pie chart
+                plt.figure(figsize=(8, 8))
+                plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
 
-        # save chart to byte stream
-        buffer = BytesIO()
-        plt.savefig(buffer, format='png')
-        buffer.seek(0)
-        plt.close()
+                # save chart to byte stream
+                buffer = BytesIO()
+                plt.savefig(buffer, format='png')
+                buffer.seek(0)
+                plt.close()
 
-        # transfer byte stream to base64 encoded string
-        image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+                # transfer byte stream to base64 encoded string
+                image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
 
-    return render_template('piechart.html', form=form, image_base64=image_base64)
+    return render_template('piechart.html', form=form, image_base64=image_base64, customer_id=current_user.id, no_data_msg=no_data_msg)
 
 '''
 Third view ends

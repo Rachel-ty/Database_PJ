@@ -32,7 +32,8 @@ INSERT INTO Device (ServiceLocationID, Type, ModelName) VALUES
 (3, 'Refrigerator', 'Samsung Fridge500'),
 (4, 'Washer', 'Bosch Wash700'),
 (5, 'Heater', 'HeatMax 200'),
-(6, 'AC System', 'CoolPro AC400');
+(6, 'AC System', 'CoolPro AC400'),
+(1, 'AC System', 'Media AC234');
 
 
 
@@ -82,7 +83,9 @@ INSERT INTO Event (DeviceId, Timestamp, EventLabel, Value) VALUES
 (2, '2022-09-10 10:00:00', 'Energy Use', 0.16),
 (2, '2022-09-26 10:00:00', 'Energy Use', 0.18),
 (3, '2022-09-05 10:00:00', 'Energy Use', 0.22),
-(3, '2022-09-25 10:00:00', 'Energy Use', 0.25);
+(3, '2022-09-25 10:00:00', 'Energy Use', 0.25),
+(25, '2023-08-01 08:15:00', 'Energy Use', 0.08);
+
 
 
 -- EnergyPrice
