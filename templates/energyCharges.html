@@ -14,6 +14,11 @@
             <h2>Analysis Chart</h2>
             <img src="data:image/png;base64,{{ image_base64 }}" alt="Analysis Chart">
         {% endif %}
+        {% if message %}
+        <div class="alert alert-warning" role="alert">
+            {{ message }}
+        </div>
+        {% endif %}
 {% endblock %}
 
 {% block scripts %}
