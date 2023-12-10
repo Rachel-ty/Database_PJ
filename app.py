@@ -1,3 +1,4 @@
+from decimal import Decimal
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 import requests
 import pymysql
@@ -295,7 +296,8 @@ class AnalysisForm(FlaskForm):
     choice = SelectField('Analysis Choice', 
                                choices=[('Energy use', 'Energy use'),  # (value, label)
                                         ('Energy charges', 'Energy charges'),
-                                        ('Piechart for energy use percentage per device type', 'Piechart for energy use percentage per device type')])
+                                        ('Piechart for energy use percentage per device type', 'Piechart for energy use percentage per device type'),
+                                        ('Tips', 'Tips')])
     submit = SubmitField('Submit')
 @app.route('/analysis', methods=['GET', 'POST'])
 @login_required
@@ -307,6 +309,8 @@ def analysis():
         return redirect(url_for('energy_charges_analysis'))
     elif form.choice.data == 'Piechart for energy use percentage per device type':
         return redirect(url_for('piechart'))
+    elif form.choice.data == 'Tips':
+        return redirect(url_for('get_tips'))
     else:
         pass
     return render_template('analysis.html', form=form)
@@ -658,6 +662,117 @@ def piechart():
 '''
 Third view ends
 '''
+
+class DeviceTypeForm(FlaskForm):
+    device_type = SelectField('Device Type', choices=[('Dryer', 'Dryer'), 
+                                                      ('Refrigerator', 'Refrigerator'), 
+                                                      ('AC_System', 'AC System')])
+    submit = SubmitField('Submit')
+@app.route('/analysis/get_tips', methods=['GET', 'POST'])
+@login_required
+def get_tips():
+    message=""
+    form=DeviceTypeForm()
+    if form.validate_on_submit():
+        device_type=form.device_type.data
+        if device_type=='Dryer':
+            message=calculate_dryer_usage_and_savings(current_user.id)
+        elif device_type=='Refrigerator':
+            message=calculate_refrigerator_openings(current_user.id)
+        elif device_type=='AC_System':
+            message=calculate_average_ac_temperature(current_user.id)
+            
+    return render_template('tips.html', form=form,  message=message)
+
+def calculate_dryer_usage_and_savings(customerID):
+    conn = get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+    cur.execute("""
+        SELECT SUM(Value) AS total_usage
+        FROM Event 
+        JOIN Device ON Event.DeviceID = Device.DeviceID 
+        JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+        WHERE ServiceLocation.CustomerID = %s AND Device.Type = 'Dryer'
+        AND TIME(Event.Timestamp) BETWEEN '08:00:00' AND '24:00:00'
+    """, (customerID,))
+
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if result and result['total_usage']:
+        total_usage = result['total_usage']
+        # Assuming the cost difference per hour between peak and non-peak hours
+        cost_difference_per_hour = Decimal('28.7')  # Example value
+        potential_savings = total_usage * cost_difference_per_hour
+        return f"Total dryer usage during peak hours: {total_usage} hours. Potential savings: ${potential_savings} by using in non-peak hours."
+    else:
+        return "No dryer usage data found for peak hours."
+    
+def calculate_refrigerator_openings(customerID):
+    conn = get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+
+    # Assuming 'EventLabel' has values like 'Door Opened' and 'Door Closed'
+    # and 'Timestamp' records the time of these events
+    cur.execute("""
+        SELECT COUNT(*) AS forgotten_times
+FROM
+    (SELECT *
+     FROM Event
+     WHERE EventLabel = 'door opened') AS OpenEvent
+JOIN
+    (SELECT *
+     FROM Event
+     WHERE EventLabel = 'door closed') AS CloseEvent 
+ON OpenEvent.DeviceId = CloseEvent.DeviceId 
+AND CloseEvent.Timestamp > OpenEvent.Timestamp 
+AND CloseEvent.Timestamp = (
+    SELECT MIN(Timestamp)
+    FROM Event e
+    WHERE e.DeviceId = OpenEvent.DeviceId 
+    AND e.Timestamp > OpenEvent.Timestamp
+    AND e.EventLabel = 'door closed'
+)
+JOIN Device ON OpenEvent.DeviceId = Device.DeviceId
+JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+WHERE Device.Type = 'Refrigerator' 
+AND TIMESTAMPDIFF(MINUTE, OpenEvent.Timestamp, CloseEvent.Timestamp) > 30 and CustomerID=%s
+    """, (customerID,))
+
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if result and result['forgotten_times']:
+        return f"Number of times the refrigerator door was left open for more than 30 minutes: {result['forgotten_times']}."
+    else:
+        return "No instances of refrigerator door being left open for more than 30 minutes."
+
+
+def calculate_average_ac_temperature(customerID):
+    conn = get_db_connection()
+    cur = conn.cursor(pymysql.cursors.DictCursor)
+
+    # Assuming 'Value' in Event table represents temperature settings
+    cur.execute("""
+        SELECT AVG(Value) AS avg_temp
+        FROM Event 
+        JOIN Device ON Event.DeviceID = Device.DeviceID 
+        JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+        WHERE ServiceLocation.CustomerID = %s AND Device.Type = 'AC System'
+        AND EventLabel = 'Temp ChangedTo'
+    """, (customerID,))
+
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if result and result['avg_temp']:
+        return f"Average temperature setting for AC system: {result['avg_temp']} degrees."
+    else:
+        return "No temperature setting data found for AC system."
+
 
 
 
