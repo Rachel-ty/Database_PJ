@@ -1,6 +1,5 @@
 from decimal import Decimal
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
-import requests
+from flask import Flask, render_template, redirect, url_for, flash, request
 import pymysql
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
@@ -716,11 +715,16 @@ def piechart():
 Third view ends
 '''
 
+'''
+Forth view
+'''
+
 class DeviceTypeForm(FlaskForm):
     device_type = SelectField('Device Type', choices=[('Dryer', 'Dryer'), 
                                                       ('Refrigerator', 'Refrigerator'), 
                                                       ('AC_System', 'AC System')])
     submit = SubmitField('Submit')
+    
 @app.route('/analysis/get_tips', methods=['GET', 'POST'])
 @login_required
 def get_tips():
@@ -770,28 +774,27 @@ def calculate_refrigerator_openings(customerID):
     # and 'Timestamp' records the time of these events
     cur.execute("""
         SELECT COUNT(*) AS forgotten_times
-FROM
-    (SELECT *
-     FROM Event
-     WHERE EventLabel = 'door opened') AS OpenEvent
-JOIN
-    (SELECT *
-     FROM Event
-     WHERE EventLabel = 'door closed') AS CloseEvent 
-ON OpenEvent.DeviceId = CloseEvent.DeviceId 
-AND CloseEvent.Timestamp > OpenEvent.Timestamp 
-AND CloseEvent.Timestamp = (
-    SELECT MIN(Timestamp)
-    FROM Event e
-    WHERE e.DeviceId = OpenEvent.DeviceId 
-    AND e.Timestamp > OpenEvent.Timestamp
-    AND e.EventLabel = 'door closed'
-)
-JOIN Device ON OpenEvent.DeviceId = Device.DeviceId
-JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
-WHERE Device.Type = 'Refrigerator' 
-AND TIMESTAMPDIFF(MINUTE, OpenEvent.Timestamp, CloseEvent.Timestamp) > 30 and CustomerID=%s
-    """, (customerID,))
+        FROM
+            (SELECT *
+            FROM Event
+            WHERE EventLabel = 'door opened') AS OpenEvent
+        JOIN
+            (SELECT *
+            FROM Event
+            WHERE EventLabel = 'door closed') AS CloseEvent 
+        ON OpenEvent.DeviceId = CloseEvent.DeviceId 
+        AND CloseEvent.Timestamp > OpenEvent.Timestamp 
+        AND CloseEvent.Timestamp = (
+            SELECT MIN(Timestamp)
+            FROM Event e
+            WHERE e.DeviceId = OpenEvent.DeviceId 
+            AND e.Timestamp > OpenEvent.Timestamp
+            AND e.EventLabel = 'door closed'
+        )
+        JOIN Device ON OpenEvent.DeviceId = Device.DeviceId
+        JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+        WHERE Device.Type = 'Refrigerator' 
+        AND TIMESTAMPDIFF(MINUTE, OpenEvent.Timestamp, CloseEvent.Timestamp) > 30 and CustomerID=%s""", (customerID,))
 
     result = cur.fetchone()
     cur.close()
@@ -826,6 +829,9 @@ def calculate_average_ac_temperature(customerID):
     else:
         return "No temperature setting data found for AC system."
 
+'''
+Forth view ends
+'''
 
 
 

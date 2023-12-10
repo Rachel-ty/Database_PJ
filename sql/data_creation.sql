@@ -1,9 +1,9 @@
 -- Customer
---INSERT INTO Customer (UserName, BillingAddress, Password, Email) VALUES
---('John Doe', '123 Maple St, Springfield', 'password123', 'johndoe@example.com'),
---('Jane Smith', '456 Oak Ave, Centerville', 'password456', 'janesmith@example.com'),
---('Alex Johnson', '789 Pine Rd, Lakeview', 'password789', 'alexjohnson@example.com'),
---('Maria Garcia', '101 Birch Ln, Mountainville', 'password101', 'mariagarcia@example.com');
+-- INSERT INTO Customer (UserName, BillingAddress, Password, Email) VALUES
+-- ('John Doe', '123 Maple St, Springfield', 'password123', 'johndoe@example.com'),
+-- ('Jane Smith', '456 Oak Ave, Centerville', 'password456', 'janesmith@example.com'),
+-- ('Alex Johnson', '789 Pine Rd, Lakeview', 'password789', 'alexjohnson@example.com'),
+-- ('Maria Garcia', '101 Birch Ln, Mountainville', 'password101', 'mariagarcia@example.com');
 
 
 
@@ -84,7 +84,7 @@ INSERT INTO Event (DeviceId, Timestamp, EventLabel, Value) VALUES
 (2, '2022-09-26 10:00:00', 'Energy Use', 0.18),
 (3, '2022-09-05 10:00:00', 'Energy Use', 0.22),
 (3, '2022-09-25 10:00:00', 'Energy Use', 0.25),
-(25, '2023-08-01 08:15:00', 'Energy Use', 0.08);
+(14, '2023-08-01 08:15:00', 'Energy Use', 0.08);
 
 
 
