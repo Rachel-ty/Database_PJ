@@ -221,8 +221,10 @@ def delete_location(location_id):
 
 class NewDeviceForm(FlaskForm):
     first_choice = SelectField('Device Type', 
-                               choices=[('AC System', 'AC System'),  # (value, label)
-                                        ('Refrigerator', 'Refrigerator')])
+                               choices=[('', 'please select a device type'), # (value, label)
+                                        ('AC System', 'AC System'),
+                                        ('Refrigerator', 'Refrigerator'),
+                                        ('Dryer', 'Dryer')])
     second_choice = SelectField('Device Model', choices=[])
     submit = SubmitField('Add Device')
 
@@ -241,6 +243,8 @@ def devices(location_id):
             form.second_choice.choices = [('LG AC310', 'LG AC310'), ('Samsung AC123', 'Samsung AC123')]
         elif form.first_choice.data == 'Refrigerator':
             form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
+        elif form.first_choice.data == 'Dryer':
+            form.second_choice.choices = [('LG Dryer 600', 'LG Dryer 600'), ('Samsung Dryer 700', 'Samsung Dryer 700')]
     if form.validate_on_submit():
         cur.execute('INSERT INTO Device (ServiceLocationID, Type, ModelName) VALUES (%s, %s, %s)', 
                     (location_id, device_type, device_model))
@@ -435,8 +439,8 @@ def energy_use_analysis():
                     message="No data returned from the query"
                     return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                df_sorted = df.sort_values(by="Date", ascending=False)
-                sns.barplot(x="Date", y="TotalEnergy", data=df_sorted.head(10))
+                df_sorted = df.sort_values(by="Date", ascending=True)
+                sns.barplot(x="Date", y="TotalEnergy", data=df_sorted.tail(10))
             if form.Time_granularity.data=='monthly':
                 sql_query = f'''
                     SELECT MONTH(Event.Timestamp) AS Month, SUM(Value) AS TotalEnergy
@@ -452,7 +456,8 @@ def energy_use_analysis():
                     message="No data returned from the query"
                     return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                sns.barplot(x="Month", y="TotalEnergy", data=df)
+                df_sorted = df.sort_values(by="Month", ascending=True)
+                sns.barplot(x="Month", y="TotalEnergy", data=df_sorted.tail(10))
             img = BytesIO()
             plt.savefig(img, format='png')
             img.seek(0)
@@ -542,7 +547,8 @@ def energy_charges_analysis():
                     message="No data returned from the query"
                     return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                sns.barplot(x="Date", y="TotalCharge", data=df)
+                df_sorted = df.sort_values(by="Date", ascending=True)
+                sns.barplot(x="Date", y="TotalCharge", data=df_sorted.tail(10))
             if form.Time_granularity.data=='monthly':
                 sql_query = f'''
                     SELECT MONTH(Event.Timestamp) AS Month, SUM(Value*Price) AS TotalCharge
@@ -559,7 +565,8 @@ def energy_charges_analysis():
                     message="No data returned from the query"
                     return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                sns.barplot(x="Month", y="TotalCharge", data=df)
+                df_sorted = df.sort_values(by="Month", ascending=True)
+                sns.barplot(x="Month", y="TotalCharge", data=df_sorted.tail(10))
             img = BytesIO()
             plt.savefig(img, format='png')
             img.seek(0)
