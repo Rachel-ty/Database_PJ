@@ -433,12 +433,15 @@ def energy_use_analysis():
                 sns.barplot(x="Date", y="TotalEnergy", data=df_sorted.tail(10))
             if form.Time_granularity.data=='monthly':
                 sql_query = f'''
-                    SELECT MONTH(Event.Timestamp) AS Month, SUM(Value) AS TotalEnergy
+                select concat(a.year,'-',a.month) AS Month, a.TotalEnergy
+                from (
+                    SELECT YEAR(Event.Timestamp) as year, MONTH(Event.Timestamp) as month, SUM(Value) AS TotalEnergy
                     FROM Event
                     JOIN Device ON Event.DeviceID = Device.DeviceID
                     JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
                     WHERE EventLabel = 'Energy Use' AND {where_clause}
                     GROUP BY YEAR(Event.Timestamp), MONTH(Event.Timestamp)
+                    ) a
                 '''
                 cur.execute(sql_query, tuple(params))
                 analysis_data = cur.fetchall()
@@ -530,13 +533,17 @@ def energy_charges_analysis():
                 sns.barplot(x="Date", y="TotalCharge", data=df_sorted.tail(10))
             if form.Time_granularity.data=='monthly':
                 sql_query = f'''
-                    SELECT MONTH(Event.Timestamp) AS Month, SUM(Value*Price) AS TotalCharge
+                select concat(a.year,'-',a.month) AS Month, a.TotalCharge
+                from
+                (
+                    SELECT YEAR(Event.Timestamp) as year, MONTH(Event.Timestamp) as month, SUM(Value*Price) AS TotalCharge
                     FROM Event
                     JOIN Device ON Event.DeviceID = Device.DeviceID
                     JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
                     JOIN EnergyPrice ON ServiceLocation.Zcode=EnergyPrice.Zcode and EXTRACT(HOUR FROM Event.Timestamp) = EXTRACT(HOUR FROM EnergyPrice.Timestamp) and EXTRACT(DAY FROM Event.Timestamp) = EXTRACT(DAY FROM EnergyPrice.Timestamp) and EXTRACT(MONTH FROM Event.Timestamp) = EXTRACT(MONTH FROM EnergyPrice.Timestamp) and EXTRACT(YEAR FROM Event.Timestamp) = EXTRACT(YEAR FROM EnergyPrice.Timestamp)
                     WHERE EventLabel = 'Energy Use' AND {where_clause}
                     GROUP BY YEAR(Event.Timestamp), MONTH(Event.Timestamp)
+                    ) a
                 '''
                 cur.execute(sql_query, tuple(params))
                 analysis_data = cur.fetchall()
