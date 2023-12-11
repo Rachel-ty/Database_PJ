@@ -3,27 +3,18 @@ DROP TABLE Event;
 DROP TABLE Device;
 DROP TABLE Servicelocation;
 DROP TABLE Energyprice;
-DROP TABLE Customer;
+-- DROP TABLE Customer;
 
 
-CREATE TABLE Customer (
-    CustomerID INT AUTO_INCREMENT PRIMARY KEY,
-    UserName VARCHAR(255),
-    BillingAddress VARCHAR(255),
-    Password VARCHAR(255),
-    Email VARCHAR(255) UNIQUE
-);
-ALTER TABLE Customer AUTO_INCREMENT = 1;
+-- CREATE TABLE Customer (
+--     CustomerID INT AUTO_INCREMENT PRIMARY KEY,
+--     UserName VARCHAR(255),
+--     BillingAddress VARCHAR(255),
+--     Password VARCHAR(255),
+--     Email VARCHAR(255) UNIQUE
+-- );
+-- ALTER TABLE Customer AUTO_INCREMENT = 1;
 
--- CREATE TRIGGER CheckEmailBeforeInsertOrUpdate
--- BEFORE INSERT ON Customer
--- FOR EACH ROW
--- BEGIN
---     IF NEW.Email NOT REGEXP '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$' THEN
---         SIGNAL SQLSTATE '45000'
---         SET MESSAGE_TEXT = 'Invalid email format';
---     END IF;
--- END;
 
 CREATE TABLE ServiceLocation (
     ServiceLocationID INT AUTO_INCREMENT PRIMARY KEY,

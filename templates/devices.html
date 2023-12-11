@@ -12,7 +12,6 @@
             {% for device in devices %}
                 <li class="list-group-item">
                     {{ device.Type }} (Name: {{ device.ModelName }})
-                    <a class="btn btn-primary float-right">Details</a>
                     <form action="{{ url_for('delete_device', location_id=location_id, device_id=device.DeviceID) }}" method="post">
                         {{ form.csrf_token }}  
                         <input type="submit" value="Delete" class="btn btn-danger">
@@ -37,7 +36,8 @@
         // 根据 firstChoice 的值来决定 secondChoice 的选项
         var options = {
             'AC System': [{'text': 'LG AC310', 'value': 'LG AC310'}, {'text': 'Samsung AC123', 'value': 'Samsung AC123'}],
-            'Refrigerator': [{'text': 'LG Fridge 400', 'value': 'LG Fridge 400'}, {'text': 'Samsung Fridge500', 'value': 'Samsung Fridge500'}]
+            'Refrigerator': [{'text': 'LG Fridge 400', 'value': 'LG Fridge 400'}, {'text': 'Samsung Fridge500', 'value': 'Samsung Fridge500'}],
+            'Dryer': [{'text': 'LG Dryer 600', 'value': 'LG Dryer 600'}, {'text': 'Samsung Dryer 700', 'value': 'Samsung Dryer 700'}]
         };
         var secondChoice = document.getElementById('second_choice');
         secondChoice.innerHTML = '';  // 清空现有选项

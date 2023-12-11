@@ -9,3 +9,4 @@ email_validator
 seaborn
 requests
 cryptography
+flask_bcrypt

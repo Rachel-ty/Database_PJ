@@ -1,6 +1,5 @@
 from decimal import Decimal
-from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
-import requests
+from flask import Flask, render_template, redirect, url_for, flash, request
 import pymysql
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
@@ -66,7 +65,6 @@ def query():
         
         cursor.close()
         conn.close()
-        # return redirect(url_for('index'))  # how to redirect
     return render_template('query.html', form=query_form, record=record)
 
 
@@ -82,7 +80,6 @@ class User(UserMixin):
     @staticmethod
     @login_manager.user_loader
     def get(user_id):
-        # Todo: Write query get user from database
         conn=get_db_connection()
         cur=conn.cursor()
         cur.execute('SELECT * FROM Customer Where CustomerId=%s',(user_id,))
@@ -107,7 +104,6 @@ class RegistrationForm(FlaskForm):
 def signup():
     form = RegistrationForm()
     if form.validate_on_submit():
-        # Todo: Write query to insert user into database; add logic checking
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         conn = get_db_connection()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
@@ -183,9 +179,6 @@ class ServiceLocationForm(FlaskForm):
 @app.route('/locations', methods=['GET', 'POST'])
 @login_required
 def locations():
-    # Todo: Write query to get devices from database (done)
-    # Todo: Allow user to delete a device (done)
-    # Todo: Allow user to add a location by submitting a form (done)
     form=ServiceLocationForm()
     conn=get_db_connection()
     cur=conn.cursor(pymysql.cursors.DictCursor)
@@ -208,16 +201,6 @@ def locations():
     locations=cur.fetchall()
     cur.close()
     conn.close()
-
-   # locations = [{"CustomerID": 1,
-   #             "ServiceLocationID": 1,
-   #             "Building": "123 Maple St Building", 
-   #             "UnitNumber": 5, 
-   #             "TakeOverTime": "2021-06-01",
-   #             "SquareFootage": 1200,
-   #             "NumberOfBedrooms": 2,
-   #             "NumberOfOccupants": 4,
-   #             "Zcode": '12345'}]
     return render_template('locations.html', form=form, locations=locations)
 
 @app.route('/delete_location/<int:location_id>', methods=['POST'])
@@ -238,8 +221,10 @@ def delete_location(location_id):
 
 class NewDeviceForm(FlaskForm):
     first_choice = SelectField('Device Type', 
-                               choices=[('AC System', 'AC System'),  # (value, label)
-                                        ('Refrigerator', 'Refrigerator')])
+                               choices=[('', 'please select a device type'), # (value, label)
+                                        ('AC System', 'AC System'),
+                                        ('Refrigerator', 'Refrigerator'),
+                                        ('Dryer', 'Dryer')])
     second_choice = SelectField('Device Model', choices=[])
     submit = SubmitField('Add Device')
 
@@ -247,11 +232,6 @@ class NewDeviceForm(FlaskForm):
 @app.route('/location/<int:location_id>', methods=['GET', 'POST'])
 @login_required
 def devices(location_id):
-    # Todo: Write query to get all devices from database and show them (done)
-    # Todo: Allow user to delete a device (done)
-    # Todo: Allow user to add new device by  (DONE)
-    #   1. first selecting from user prestored device type list
-    #   2. choose the device model from the prestored model list
     form = NewDeviceForm()
     conn=get_db_connection()
     cur=conn.cursor(pymysql.cursors.DictCursor)
@@ -263,6 +243,8 @@ def devices(location_id):
             form.second_choice.choices = [('LG AC310', 'LG AC310'), ('Samsung AC123', 'Samsung AC123')]
         elif form.first_choice.data == 'Refrigerator':
             form.second_choice.choices = [('LG Fridge 400', 'LG Fridge 400'), ('Samsung Fridge500', 'Samsung Fridge500')]
+        elif form.first_choice.data == 'Dryer':
+            form.second_choice.choices = [('LG Dryer 600', 'LG Dryer 600'), ('Samsung Dryer 700', 'Samsung Dryer 700')]
     if form.validate_on_submit():
         cur.execute('INSERT INTO Device (ServiceLocationID, Type, ModelName) VALUES (%s, %s, %s)', 
                     (location_id, device_type, device_model))
@@ -321,7 +303,6 @@ def analysis():
 First View: Energy use analysis
 '''
 class EnergyUseForm(FlaskForm):
-    # 初始化表单时，加载 customer_id 选项
     def __init__(self, *args, **kwargs):
         super(EnergyUseForm, self).__init__(*args, **kwargs)
         self.load_customer_ids()
@@ -343,11 +324,8 @@ class EnergyUseForm(FlaskForm):
     Time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')])
     submit = SubmitField('Submit')
     def update_choices(self, customer_id, service_location_id, device_type):
-        # 更新 ServiceLocationID 的选项
         self.ServiceLocationID.choices = get_service_locations(customer_id)
-        # 更新 device_type 的选项
         self.device_type.choices = get_device_types(customer_id, service_location_id)
-        # 更新 device_id 的选项
         self.device_id.choices = get_device_ids(customer_id, service_location_id, device_type)
 
 @app.route('/get_service_locations/<customer_id>')
@@ -419,8 +397,6 @@ def get_device_ids(customer_id, service_location_id, device_type):
 @app.route('/analysis/energy_use_analysis', methods=['GET', 'POST'])
 @login_required
 def energy_use_analysis():
-    # Todo: provide several(4-5) analysis options(views) for user to choose
-    # Todo: create visualization for each analysis option
     form = EnergyUseForm()
     analysis_data=None
     image_base64=None
@@ -463,7 +439,8 @@ def energy_use_analysis():
                     message="No data returned from the query"
                     return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                sns.barplot(x="Date", y="TotalEnergy", data=df)
+                df_sorted = df.sort_values(by="Date", ascending=True)
+                sns.barplot(x="Date", y="TotalEnergy", data=df_sorted.tail(10))
             if form.Time_granularity.data=='monthly':
                 sql_query = f'''
                     SELECT MONTH(Event.Timestamp) AS Month, SUM(Value) AS TotalEnergy
@@ -479,7 +456,8 @@ def energy_use_analysis():
                     message="No data returned from the query"
                     return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                sns.barplot(x="Month", y="TotalEnergy", data=df)
+                df_sorted = df.sort_values(by="Month", ascending=True)
+                sns.barplot(x="Month", y="TotalEnergy", data=df_sorted.tail(10))
             img = BytesIO()
             plt.savefig(img, format='png')
             img.seek(0)
@@ -498,7 +476,6 @@ First view ends
 Second view: Energy charges analysis
 '''
 class EnergyChargesForm(FlaskForm):
-    # 初始化表单时，加载 customer_id 选项
     def __init__(self, *args, **kwargs):
         super(EnergyChargesForm, self).__init__(*args, **kwargs)
         self.load_customer_ids()
@@ -520,18 +497,13 @@ class EnergyChargesForm(FlaskForm):
     Time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')])
     submit = SubmitField('Submit')
     def update_choices(self, customer_id, service_location_id, device_type):
-        # 更新 ServiceLocationID 的选项
         self.ServiceLocationID.choices = get_service_locations(customer_id)
-        # 更新 device_type 的选项
         self.device_type.choices = get_device_types(customer_id, service_location_id)
-        # 更新 device_id 的选项
         self.device_id.choices = get_device_ids(customer_id, service_location_id, device_type)
 
 @app.route('/analysis/energy_charges_analysis', methods=['GET', 'POST'])
 @login_required
 def energy_charges_analysis():
-    # Todo: provide several(4-5) analysis options(views) for user to choose
-    # Todo: create visualization for each analysis option
     form = EnergyChargesForm()
     analysis_data=None
     image_base64=None
@@ -575,7 +547,8 @@ def energy_charges_analysis():
                     message="No data returned from the query"
                     return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                sns.barplot(x="Date", y="TotalCharge", data=df)
+                df_sorted = df.sort_values(by="Date", ascending=True)
+                sns.barplot(x="Date", y="TotalCharge", data=df_sorted.tail(10))
             if form.Time_granularity.data=='monthly':
                 sql_query = f'''
                     SELECT MONTH(Event.Timestamp) AS Month, SUM(Value*Price) AS TotalCharge
@@ -592,7 +565,8 @@ def energy_charges_analysis():
                     message="No data returned from the query"
                     return render_template('energyCharges.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                sns.barplot(x="Month", y="TotalCharge", data=df)
+                df_sorted = df.sort_values(by="Month", ascending=True)
+                sns.barplot(x="Month", y="TotalCharge", data=df_sorted.tail(10))
             img = BytesIO()
             plt.savefig(img, format='png')
             img.seek(0)
@@ -716,11 +690,16 @@ def piechart():
 Third view ends
 '''
 
+'''
+Forth view
+'''
+
 class DeviceTypeForm(FlaskForm):
     device_type = SelectField('Device Type', choices=[('Dryer', 'Dryer'), 
                                                       ('Refrigerator', 'Refrigerator'), 
                                                       ('AC_System', 'AC System')])
     submit = SubmitField('Submit')
+    
 @app.route('/analysis/get_tips', methods=['GET', 'POST'])
 @login_required
 def get_tips():
@@ -756,9 +735,9 @@ def calculate_dryer_usage_and_savings(customerID):
     if result and result['total_usage']:
         total_usage = result['total_usage']
         # Assuming the cost difference per hour between peak and non-peak hours
-        cost_difference_per_hour = Decimal('28.7')  # Example value
+        cost_difference_per_hour = Decimal('0.287')  # Example value
         potential_savings = total_usage * cost_difference_per_hour
-        return f"Total dryer usage during peak hours: {total_usage} hours. Potential savings: ${potential_savings} by using in non-peak hours."
+        return f"Do you know that electricity prices vary at different times of the day? You have consumed {total_usage} kwh of electricity using dryer during peak hours. If you could use it during off-peak hours, you could save ${potential_savings}!"
     else:
         return "No dryer usage data found for peak hours."
     
@@ -770,62 +749,107 @@ def calculate_refrigerator_openings(customerID):
     # and 'Timestamp' records the time of these events
     cur.execute("""
         SELECT COUNT(*) AS forgotten_times
-FROM
-    (SELECT *
-     FROM Event
-     WHERE EventLabel = 'door opened') AS OpenEvent
-JOIN
-    (SELECT *
-     FROM Event
-     WHERE EventLabel = 'door closed') AS CloseEvent 
-ON OpenEvent.DeviceId = CloseEvent.DeviceId 
-AND CloseEvent.Timestamp > OpenEvent.Timestamp 
-AND CloseEvent.Timestamp = (
-    SELECT MIN(Timestamp)
-    FROM Event e
-    WHERE e.DeviceId = OpenEvent.DeviceId 
-    AND e.Timestamp > OpenEvent.Timestamp
-    AND e.EventLabel = 'door closed'
-)
-JOIN Device ON OpenEvent.DeviceId = Device.DeviceId
-JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
-WHERE Device.Type = 'Refrigerator' 
-AND TIMESTAMPDIFF(MINUTE, OpenEvent.Timestamp, CloseEvent.Timestamp) > 30 and CustomerID=%s
-    """, (customerID,))
+        FROM
+            (SELECT *
+            FROM Event
+            WHERE EventLabel = 'door opened') AS OpenEvent
+        JOIN
+            (SELECT *
+            FROM Event
+            WHERE EventLabel = 'door closed') AS CloseEvent 
+        ON OpenEvent.DeviceId = CloseEvent.DeviceId 
+        AND CloseEvent.Timestamp > OpenEvent.Timestamp 
+        AND CloseEvent.Timestamp = (
+            SELECT MIN(Timestamp)
+            FROM Event e
+            WHERE e.DeviceId = OpenEvent.DeviceId 
+            AND e.Timestamp > OpenEvent.Timestamp
+            AND e.EventLabel = 'door closed'
+        )
+        JOIN Device ON OpenEvent.DeviceId = Device.DeviceId
+        JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+        WHERE Device.Type = 'Refrigerator' AND YEAR(OpenEvent.Timestamp) = 2023
+        AND TIMESTAMPDIFF(MINUTE, OpenEvent.Timestamp, CloseEvent.Timestamp) > 30 and CustomerID=%s""", (customerID,))
 
     result = cur.fetchone()
     cur.close()
     conn.close()
 
     if result and result['forgotten_times']:
-        return f"Number of times the refrigerator door was left open for more than 30 minutes: {result['forgotten_times']}."
+        return f"Do not leave your refrigerator wide open! Your refrigerator door was left open for more than 30 minutes in 2023 for {result['forgotten_times']} time(s)! Please be careful~"
     else:
-        return "No instances of refrigerator door being left open for more than 30 minutes."
+        return "You are doing a great job in keeping your refrigerator door closed!"
 
 
 def calculate_average_ac_temperature(customerID):
     conn = get_db_connection()
     cur = conn.cursor(pymysql.cursors.DictCursor)
+    temp_record = {}
 
-    # Assuming 'Value' in Event table represents temperature settings
+    # Assume 'Value' in Event table represents temperature settings
+    # Assume AC system will report its temperature setting every 1 hour
     cur.execute("""
         SELECT AVG(Value) AS avg_temp
         FROM Event 
         JOIN Device ON Event.DeviceID = Device.DeviceID 
         JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
         WHERE ServiceLocation.CustomerID = %s AND Device.Type = 'AC System'
-        AND EventLabel = 'Temp ChangedTo'
+        AND EventLabel = 'Temp'
     """, (customerID,))
-
     result = cur.fetchone()
+    if result['avg_temp']:
+        temp_record['avg_temp'] = result['avg_temp']
+    else:
+        temp_record['avg_temp'] = None
+    
+    cur.execute("""
+        SELECT COUNT(Value) AS good_count
+        FROM Event 
+        JOIN Device ON Event.DeviceID = Device.DeviceID 
+        JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+        WHERE ServiceLocation.CustomerID = %s AND Device.Type = 'AC System'
+        AND EventLabel = 'Temp' AND Value >= 75
+    """, (customerID,))
+    result = cur.fetchone()
+    if result['good_count']:
+        temp_record['good_count'] = result['good_count']
+    else:
+        temp_record['good_count'] = 0
+    
+    cur.execute("""
+        SELECT COUNT(Value) AS bad_count
+        FROM Event 
+        JOIN Device ON Event.DeviceID = Device.DeviceID 
+        JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+        WHERE ServiceLocation.CustomerID = %s AND Device.Type = 'AC System'
+        AND EventLabel = 'Temp' AND Value < 75
+    """, (customerID,))
+    result = cur.fetchone()
+    if result['bad_count']:   
+        temp_record['bad_count'] = result['bad_count']
+    else:  
+        temp_record['bad_count'] = 0
+
     cur.close()
     conn.close()
 
-    if result and result['avg_temp']:
-        return f"Average temperature setting for AC system: {result['avg_temp']} degrees."
+    if temp_record['avg_temp']:
+        good_percentage = round((temp_record['good_count'] / (temp_record['good_count'] + temp_record['bad_count'])), 2)
+        approx_savings = round(float(78 - temp_record['avg_temp']) * 3 / 1.8, 2)
+        ret =  f'''The U.S. Department of Energy (DOE) recommends aiming for an inside temperature of 78 degrees Fahrenheit in summer.\n
+                    The average temperature setting of your AC system is {round(temp_record['avg_temp'], 2)} degrees.\n
+                    Meanwhile, your AC system was set to be around 78 degrees Fahrenheit(>=75) {good_percentage}% of the time.\n'''
+        if temp_record['avg_temp'] < 78:
+            ret += f'''If you could keep your AC system to be around 78 degrees Fahrenheit, you could save approximately {approx_savings}% of your total AC charges.'''
+        else:
+            ret += "You are already doing a great job in energy saving!"
+        return ret
     else:
         return "No temperature setting data found for AC system."
 
+'''
+Forth view ends
+'''
 
 
 
