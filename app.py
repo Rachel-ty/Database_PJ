@@ -300,37 +300,28 @@ def analysis():
 '''
 First View: Energy use analysis
 '''
+
 class EnergyUseForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(EnergyUseForm, self).__init__(*args, **kwargs)
-        self.load_customer_ids()
+        self.ServiceLocationID.choices = get_service_locations(current_user.id)
 
-    def load_customer_ids(self):
-        conn = get_db_connection()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
-        cur.execute('SELECT CustomerID FROM Customer')
-        customer_ids = cur.fetchall()
-        choices = [('all', 'All')] + [(str(cid['CustomerID']), str(cid['CustomerID'])) for cid in customer_ids]
-        self.customer_id.choices = choices
-        cur.close()
-        conn.close()
-
-    customer_id = SelectField('Customer ID', choices=[('all', 'All')])
     ServiceLocationID = SelectField('Service Location', choices=[('all', 'All')])
     device_type = SelectField('Device Type', choices=[('all', 'All')])
     device_id = SelectField('Device ID', choices=[('all', 'All')])
     Time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')])
     submit = SubmitField('Submit')
-    def update_choices(self, customer_id, service_location_id, device_type):
-        self.ServiceLocationID.choices = get_service_locations(customer_id)
-        self.device_type.choices = get_device_types(customer_id, service_location_id)
-        self.device_id.choices = get_device_ids(customer_id, service_location_id, device_type)
+    def update_choices(self, service_location_id, device_type):
+        self.ServiceLocationID.choices = get_service_locations(current_user.id)
+        self.device_type.choices = get_device_types(current_user.id, service_location_id)
+        self.device_id.choices = get_device_ids(current_user.id, service_location_id, device_type)
 
 @app.route('/get_service_locations/<customer_id>')
 @login_required
 def get_service_locations(customer_id):
     conn = get_db_connection()
     cur = conn.cursor(pymysql.cursors.DictCursor)
+    print(customer_id)
     if customer_id == 'all':
         cur.execute('SELECT ServiceLocationID FROM ServiceLocation')
     else:
@@ -400,16 +391,15 @@ def energy_use_analysis():
     image_base64=None
     message=""
     if request.method=='POST':
-        form.update_choices(form.customer_id.data, form.ServiceLocationID.data, form.device_type.data)
+        form.update_choices(form.ServiceLocationID.data, form.device_type.data)
         if form.validate_on_submit():
             conn = get_db_connection()
             cur=conn.cursor(pymysql.cursors.DictCursor)
             plt.figure(figsize=(10, 6))
             conditions = []
             params = []
-            if form.customer_id.data != 'all':
-                conditions.append('ServiceLocation.CustomerID = %s')
-                params.append(form.customer_id.data)
+            conditions.append('ServiceLocation.CustomerID = %s')
+            params.append(current_user.id)
             if form.ServiceLocationID.data != 'all':
                 conditions.append('ServiceLocation.ServiceLocationID = %s')
                 params.append(form.ServiceLocationID.data)
@@ -476,28 +466,18 @@ Second view: Energy charges analysis
 class EnergyChargesForm(FlaskForm):
     def __init__(self, *args, **kwargs):
         super(EnergyChargesForm, self).__init__(*args, **kwargs)
-        self.load_customer_ids()
+        self.ServiceLocationID.choices = get_service_locations(current_user.id)
 
-    def load_customer_ids(self):
-        conn = get_db_connection()
-        cur = conn.cursor(pymysql.cursors.DictCursor)
-        cur.execute('SELECT CustomerID FROM Customer')
-        customer_ids = cur.fetchall()
-        choices = [('all', 'All')] + [(str(cid['CustomerID']), str(cid['CustomerID'])) for cid in customer_ids]
-        self.customer_id.choices = choices
-        cur.close()
-        conn.close()
-
-    customer_id = SelectField('Customer ID', choices=[('all', 'All')])
+    
     ServiceLocationID = SelectField('Service Location', choices=[('all', 'All')])
     device_type = SelectField('Device Type', choices=[('all', 'All')])
     device_id = SelectField('Device ID', choices=[('all', 'All')])
     Time_granularity = SelectField('Time Granularity', choices=[('daily', 'Daily'), ('monthly', 'Monthly')])
     submit = SubmitField('Submit')
-    def update_choices(self, customer_id, service_location_id, device_type):
-        self.ServiceLocationID.choices = get_service_locations(customer_id)
-        self.device_type.choices = get_device_types(customer_id, service_location_id)
-        self.device_id.choices = get_device_ids(customer_id, service_location_id, device_type)
+    def update_choices(self, service_location_id, device_type):
+        self.ServiceLocationID.choices = get_service_locations(current_user.id)
+        self.device_type.choices = get_device_types(current_user.id, service_location_id)
+        self.device_id.choices = get_device_ids(current_user.id, service_location_id, device_type)
 
 @app.route('/analysis/energy_charges_analysis', methods=['GET', 'POST'])
 @login_required
@@ -507,16 +487,15 @@ def energy_charges_analysis():
     image_base64=None
     message=""
     if request.method=='POST':
-        form.update_choices(form.customer_id.data, form.ServiceLocationID.data, form.device_type.data)
+        form.update_choices( form.ServiceLocationID.data, form.device_type.data)
         if form.validate_on_submit():
             conn = get_db_connection()
             cur=conn.cursor(pymysql.cursors.DictCursor)
             plt.figure(figsize=(10, 6))
             conditions = []
             params = []
-            if form.customer_id.data != 'all':
-                conditions.append('ServiceLocation.CustomerID = %s')
-                params.append(form.customer_id.data)
+            conditions.append('ServiceLocation.CustomerID = %s')
+            params.append(current_user.id)
             if form.ServiceLocationID.data != 'all':
                 conditions.append('ServiceLocation.ServiceLocationID = %s')
                 params.append(form.ServiceLocationID.data)

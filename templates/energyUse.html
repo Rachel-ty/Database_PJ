@@ -23,18 +23,13 @@
 
 {% block scripts %}
 <script>
-    document.getElementById('customer_id').addEventListener('change', function() {
-        updateServiceLocations(this.value);
-        updateDeviceTypes(this.value, 'all');
-        updateDeviceIds(this.value, 'all', 'all');
-    });
     document.getElementById('ServiceLocationID').addEventListener('change', function() {
-        let customerId = document.getElementById('customer_id').value;
+        let customerId = {{current_user.id }};
         updateDeviceTypes(customerId, this.value);
         updateDeviceIds(customerId, this.value, document.getElementById('device_type').value);
     });
     document.getElementById('device_type').addEventListener('change', function() {
-        let customerId = document.getElementById('customer_id').value;
+        let customerId = {{current_user.id }};
         let serviceLocationId = document.getElementById('ServiceLocationID').value;
         updateDeviceIds(customerId, serviceLocationId, this.value);
     });
