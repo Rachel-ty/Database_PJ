@@ -729,7 +729,7 @@ def calculate_dryer_usage_and_savings(customerID):
         # Assuming the cost difference per hour between peak and non-peak hours
         cost_difference_per_hour = Decimal('0.287')  # Example value
         potential_savings = total_usage * cost_difference_per_hour
-        return f"Total dryer usage during peak hours: {total_usage} hours. Potential savings: ${potential_savings} by using in non-peak hours."
+        return f"Do you know that electricity prices vary at different times of the day? You have consumed {total_usage} kwh of electricity using dryer during peak hours. If you could use it during off-peak hours, you could save ${potential_savings}!"
     else:
         return "No dryer usage data found for peak hours."
     
@@ -760,7 +760,7 @@ def calculate_refrigerator_openings(customerID):
         )
         JOIN Device ON OpenEvent.DeviceId = Device.DeviceId
         JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
-        WHERE Device.Type = 'Refrigerator' 
+        WHERE Device.Type = 'Refrigerator' AND YEAR(OpenEvent.Timestamp) = 2023
         AND TIMESTAMPDIFF(MINUTE, OpenEvent.Timestamp, CloseEvent.Timestamp) > 30 and CustomerID=%s""", (customerID,))
 
     result = cur.fetchone()
@@ -768,31 +768,74 @@ def calculate_refrigerator_openings(customerID):
     conn.close()
 
     if result and result['forgotten_times']:
-        return f"Number of times the refrigerator door was left open for more than 30 minutes: {result['forgotten_times']}."
+        return f"Do not leave your refrigerator wide open! Your refrigerator door was left open for more than 30 minutes in 2023 for {result['forgotten_times']} time(s)! Please be careful~"
     else:
-        return "No instances of refrigerator door being left open for more than 30 minutes."
+        return "You are doing a great job in keeping your refrigerator door closed!"
 
 
 def calculate_average_ac_temperature(customerID):
     conn = get_db_connection()
     cur = conn.cursor(pymysql.cursors.DictCursor)
+    temp_record = {}
 
-    # Assuming 'Value' in Event table represents temperature settings
+    # Assume 'Value' in Event table represents temperature settings
+    # Assume AC system will report its temperature setting every 1 hour
     cur.execute("""
         SELECT AVG(Value) AS avg_temp
         FROM Event 
         JOIN Device ON Event.DeviceID = Device.DeviceID 
         JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
         WHERE ServiceLocation.CustomerID = %s AND Device.Type = 'AC System'
-        AND EventLabel = 'Temp ChangedTo'
+        AND EventLabel = 'Temp'
     """, (customerID,))
-
     result = cur.fetchone()
+    if result['avg_temp']:
+        temp_record['avg_temp'] = result['avg_temp']
+    else:
+        temp_record['avg_temp'] = None
+    
+    cur.execute("""
+        SELECT COUNT(Value) AS good_count
+        FROM Event 
+        JOIN Device ON Event.DeviceID = Device.DeviceID 
+        JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+        WHERE ServiceLocation.CustomerID = %s AND Device.Type = 'AC System'
+        AND EventLabel = 'Temp' AND Value >= 75
+    """, (customerID,))
+    result = cur.fetchone()
+    if result['good_count']:
+        temp_record['good_count'] = result['good_count']
+    else:
+        temp_record['good_count'] = 0
+    
+    cur.execute("""
+        SELECT COUNT(Value) AS bad_count
+        FROM Event 
+        JOIN Device ON Event.DeviceID = Device.DeviceID 
+        JOIN ServiceLocation ON Device.ServiceLocationID = ServiceLocation.ServiceLocationID
+        WHERE ServiceLocation.CustomerID = %s AND Device.Type = 'AC System'
+        AND EventLabel = 'Temp' AND Value < 75
+    """, (customerID,))
+    result = cur.fetchone()
+    if result['bad_count']:   
+        temp_record['bad_count'] = result['bad_count']
+    else:  
+        temp_record['bad_count'] = 0
+
     cur.close()
     conn.close()
 
-    if result and result['avg_temp']:
-        return f"Average temperature setting for AC system: {result['avg_temp']} degrees."
+    if temp_record['avg_temp']:
+        good_percentage = round((temp_record['good_count'] / (temp_record['good_count'] + temp_record['bad_count'])), 2)
+        approx_savings = round(float(78 - temp_record['avg_temp']) * 3 / 1.8, 2)
+        ret =  f'''The U.S. Department of Energy (DOE) recommends aiming for an inside temperature of 78 degrees Fahrenheit in summer.\n
+                    The average temperature setting of your AC system is {round(temp_record['avg_temp'], 2)} degrees.\n
+                    Meanwhile, your AC system was set to be around 78 degrees Fahrenheit(>=75) {good_percentage}% of the time.\n'''
+        if temp_record['avg_temp'] < 78:
+            ret += f'''If you could keep your AC system to be around 78 degrees Fahrenheit, you could save approximately {approx_savings}% of your total AC charges.'''
+        else:
+            ret += "You are already doing a great job in energy saving!"
+        return ret
     else:
         return "No temperature setting data found for AC system."
 
