@@ -119,13 +119,11 @@ def signup():
         )
         try:
             cursor.execute(insert_query, data)
-            conn.commit()  # commit to make changes persistent in the database
             print("Query executed successfully")
+            return redirect(url_for('login'))
         except Exception as e:
-            print(f"An error occurred: {e}")
-            conn.rollback()  # rollback to the previous state if any error occurred
-        print(cursor.fetchall())   
-        return redirect(url_for('login'))
+            flash(f"An error occurred: {e}")
+        
     return render_template('signup.html', title='Sign Up', form=form)
 
 
