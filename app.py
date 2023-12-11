@@ -435,7 +435,8 @@ def energy_use_analysis():
                     message="No data returned from the query"
                     return render_template('energyUse.html', form=form, analysis_data=analysis_data, image_base64=image_base64, message=message)
                 df = pd.DataFrame(analysis_data)
-                sns.barplot(x="Date", y="TotalEnergy", data=df)
+                df_sorted = df.sort_values(by="Date", ascending=False)
+                sns.barplot(x="Date", y="TotalEnergy", data=df_sorted.head(10))
             if form.Time_granularity.data=='monthly':
                 sql_query = f'''
                     SELECT MONTH(Event.Timestamp) AS Month, SUM(Value) AS TotalEnergy
