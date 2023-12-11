@@ -834,7 +834,7 @@ def calculate_average_ac_temperature(customerID):
     conn.close()
 
     if temp_record['avg_temp']:
-        good_percentage = round((temp_record['good_count'] / (temp_record['good_count'] + temp_record['bad_count'])), 2)
+        good_percentage = round((temp_record['good_count'] / (temp_record['good_count'] + temp_record['bad_count']))*100, 2)
         approx_savings = round(float(78 - temp_record['avg_temp']) * 3 / 1.8, 2)
         ret =  f'''The U.S. Department of Energy (DOE) recommends aiming for an inside temperature of 78 degrees Fahrenheit in summer.\n
                     The average temperature setting of your AC system is {round(temp_record['avg_temp'], 2)} degrees.\n
